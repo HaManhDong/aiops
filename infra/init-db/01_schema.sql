@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS datasource_configs (
     elasticsearch_url     TEXT         NOT NULL,
     elasticsearch_api_key TEXT,
     app_log_index         VARCHAR(500) NOT NULL,
-    syslog_index          VARCHAR(200) NOT NULL DEFAULT 'vst-txt-logs',
+    syslog_index          VARCHAR(200) NOT NULL DEFAULT 'aiops-txt-logs',
     prometheus_url        TEXT,
     prometheus_extra_labels JSON,
     kibana_url            TEXT,
@@ -347,7 +347,7 @@ CREATE TABLE IF NOT EXISTS notification_logs (
 -- ─── Seed data ───────────────────────────────────────────────────────
 -- Admin user (password: changeme123)
 INSERT IGNORE INTO users (id, username, password_hash, full_name, role, is_active) VALUES
-('usr-admin-001', 'admin', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/lewFzAn1jClD3qBi2', 'System Admin', 'admin', 1);
+('usr-admin-001', 'admin', '$2b$12$JnHFLlsWmXbd.ad3IJtpAO9xMgXSv1hWFE153nfJmm.ciZDcP6.Qy', 'System Admin', 'admin', 1);
 
 INSERT IGNORE INTO user_app_permissions (id, user_id, app_id) VALUES
 (UUID(), 'usr-admin-001', 'all');

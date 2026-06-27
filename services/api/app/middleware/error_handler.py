@@ -21,7 +21,7 @@ def add_error_handlers(app: FastAPI) -> None:
         return JSONResponse(
             status_code=exc.status_code,
             content={
-                "type": f"https://vst-ai.internal/errors/{exc.status_code}",
+                "type": f"https://aiops.internal/errors/{exc.status_code}",
                 "title": title,
                 "status": exc.status_code,
                 "request_id": request_id,
@@ -41,7 +41,7 @@ def add_error_handlers(app: FastAPI) -> None:
         return JSONResponse(
             status_code=500,
             content={
-                "type": "https://vst-ai.internal/errors/500",
+                "type": "https://aiops.internal/errors/500",
                 "title": "Internal Server Error",
                 "status": 500,
                 "request_id": request_id,

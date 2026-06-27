@@ -23,7 +23,7 @@ class DatasourceConfig(Base):
     elasticsearch_api_key: Mapped[str | None] = mapped_column(Text)
     app_log_index: Mapped[str] = mapped_column(String(500), nullable=False)
     syslog_index: Mapped[str] = mapped_column(
-        String(200), nullable=False, default="vst-txt-logs", server_default="vst-txt-logs"
+        String(200), nullable=False, default="aiops-txt-logs", server_default="aiops-txt-logs"
     )
 
     prometheus_url: Mapped[str | None] = mapped_column(Text)

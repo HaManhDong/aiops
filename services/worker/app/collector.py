@@ -40,7 +40,7 @@ async def run_collection_for_app(app_id: str, db: AsyncSession, cfg: dict, patte
                     app_id=app_id,
                     es_url=cfg["elasticsearch_url"],
                     es_api_key=cfg.get("elasticsearch_api_key"),
-                    log_index=cfg.get("app_log_index", f"vst-txt-logs-{app_id}"),
+                    log_index=cfg.get("app_log_index", f"aiops-txt-logs-{app_id}"),
                     error_patterns=patterns,
                     batch_size=batch_size,
                     db=db,

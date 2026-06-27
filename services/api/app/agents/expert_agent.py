@@ -328,7 +328,7 @@ _DEFAULT_PLAN_PROMPT = """Bạn là chuyên gia phân tích sự cố hệ thố
 Dựa trên câu hỏi và context ban đầu, tạo kế hoạch điều tra có cấu trúc.
 Mỗi bước phải rõ mục tiêu và loại query cần thực hiện."""
 
-_DEFAULT_EXPERT_SYSTEM = """Bạn là chuyên gia phân tích sự cố (Root Cause Analysis) cho hệ thống IT của VST.
+_DEFAULT_EXPERT_SYSTEM = """Bạn là chuyên gia phân tích sự cố (Root Cause Analysis) cho hệ thống IT.
 Phân tích bằng chứng được cung cấp và đưa ra:
 1. Nguyên nhân gốc chính xác nhất (kèm bằng chứng cụ thể)
 2. Chuỗi nguyên nhân → kết quả

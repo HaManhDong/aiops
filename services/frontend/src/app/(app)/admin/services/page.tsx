@@ -12,6 +12,7 @@ import { DEBOUNCE_MS } from "@/lib/constants"
 import type { DatasourceConfig } from "@/types/api"
 
 const EMPTY: Partial<DatasourceConfig> = {}
+type DatasourceResponse = DatasourceConfig[] | { datasources: DatasourceConfig[] }
 
 export default function ServicesPage() {
   const [items, setItems] = useState<DatasourceConfig[]>([])
@@ -32,8 +33,8 @@ export default function ServicesPage() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const data = await apiJson<{ datasources: DatasourceConfig[] }>("/api/v1/admin/services")
-      const all = data.datasources ?? []
+      const data = await apiJson<DatasourceResponse>("/api/v1/admin/services")
+      const all = Array.isArray(data) ? data : data.datasources ?? []
       setItems(query ? all.filter((d) => d.display_name.toLowerCase().includes(query) || d.app_id.includes(query)) : all)
     } catch (err: unknown) { toast.error(err instanceof Error ? err.message : "Lỗi") }
     finally { setLoading(false) }

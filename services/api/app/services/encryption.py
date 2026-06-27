@@ -1,6 +1,6 @@
 """
 AES-256-GCM encryption cho credentials lưu trong MariaDB.
-Key đọc từ env var ENCRYPTION_KEY (64 hex chars = 32 bytes).
+Key đọc từ env var ENCRYPTION_KEY hoặc app settings (64 hex chars = 32 bytes).
 """
 from __future__ import annotations
 
@@ -12,6 +12,9 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 def _get_key() -> bytes:
     raw = os.environ.get("ENCRYPTION_KEY", "")
+    if not raw:
+        from app.config import settings
+        raw = settings.encryption_key
     if len(raw) != 64:
         raise RuntimeError(
             "ENCRYPTION_KEY phải là 64 hex chars (32 bytes). "

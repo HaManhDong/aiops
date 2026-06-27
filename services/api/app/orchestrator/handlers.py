@@ -17,13 +17,13 @@ _HELP_TEXT = """**Các lệnh có sẵn:**
 """
 
 _GREETING_TEXT = (
-    "Xin chào! Tôi là AI Assistant phân tích hệ thống IT của VST. "
+    "Xin chào! Tôi là AI Assistant phân tích hệ thống IT. "
     "Bạn có thể hỏi tôi về trạng thái hệ thống, phân tích lỗi, hoặc metrics server. "
     "Gõ `/help` để xem các lệnh có sẵn."
 )
 
 _WHOIS_TEXT = (
-    "Tôi là AI Assistant được xây dựng bởi đội kỹ thuật VST, "
+    "Tôi là AI Assistant hỗ trợ đội vận hành, "
     "hỗ trợ phân tích log, metrics và trạng thái hệ thống theo thời gian thực."
 )
 

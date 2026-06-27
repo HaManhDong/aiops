@@ -6,7 +6,7 @@ import { Toaster } from "@/components/ui/sonner"
 const geist = Geist({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "VST AI OpsAI Platform",
+  title: "AI OpsAI Platform",
   description: "AIOps on-premise — log intelligence & prediction",
 }
 

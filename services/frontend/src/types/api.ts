@@ -78,6 +78,16 @@ export interface ChatMessage {
   error?: string
 }
 
+export interface ChatSession {
+  id: string
+  app_id: string | null
+  title: string | null
+  label: string | null
+  state: string
+  created_at: string
+  updated_at: string
+}
+
 export interface ServerRow {
   hostname: string
   ip: string

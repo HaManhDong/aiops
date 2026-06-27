@@ -76,7 +76,7 @@ class Settings(BaseSettings):
 
     # ─── Worker ───────────────────────────────────────────────────────
     worker_batch_size: int = 100
-    worker_es_index_prefix: str = "vst-txt-logs"
+    worker_es_index_prefix: str = "aiops-txt-logs"
 
     # ─── Prediction Engine ───────────────────────────────────────────
     prediction_scan_interval_s: int = 60
@@ -102,7 +102,7 @@ class Settings(BaseSettings):
     smtp_port: int = 587
     smtp_user: str = ""
     smtp_password: str = ""
-    smtp_from: str = "aiops@vst.internal"
+    smtp_from: str = "aiops@aiops.internal"
     smtp_use_tls: bool = False
 
     # ─── Notifications — Telegram ─────────────────────────────────────

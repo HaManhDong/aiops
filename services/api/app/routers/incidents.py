@@ -140,7 +140,7 @@ async def _add_timeline(
         user_id=user_id,
         action=action,
         detail=detail,
-        metadata=metadata,
+        metadata_=metadata,
     )
     db.add(entry)
 
@@ -396,7 +396,7 @@ async def get_timeline(
             user_id=e.user_id,
             action=e.action,
             detail=e.detail,
-            metadata=e.metadata,
+            metadata=e.metadata_,
             created_at=e.created_at.isoformat() if e.created_at else "",
         )
         for e in entries
@@ -421,7 +421,7 @@ async def add_timeline_entry(
         user_id=current_user.user_id,
         action=body.action,
         detail=body.detail,
-        metadata=body.metadata,
+        metadata_=body.metadata,
     )
     db.add(entry)
     await db.commit()
@@ -433,7 +433,7 @@ async def add_timeline_entry(
         user_id=entry.user_id,
         action=entry.action,
         detail=entry.detail,
-        metadata=entry.metadata,
+        metadata=entry.metadata_,
         created_at=entry.created_at.isoformat() if entry.created_at else "",
     )
 

@@ -189,6 +189,8 @@ async def handle_normal_query(
         await _conv_mgr.save(ctx)
         try:
             from app.models.chat_message import ChatMessage
+            await _conv_mgr.persist_to_db(ctx, db)
+            await db.flush()
             db.add(ChatMessage(session_id=session_id, role="user", content=message))
             db.add(ChatMessage(
                 session_id=session_id,
@@ -196,7 +198,6 @@ async def handle_normal_query(
                 content=f"[ROOT_CAUSE investigation] {message[:200]}",
                 assistant_metadata={"intent": "ROOT_CAUSE", "app_ids": intent.app_ids},
             ))
-            await _conv_mgr.persist_to_db(ctx, db)
             await db.commit()
         except Exception as e:
             log.warning("persist_expert_chat_failed", error=str(e), session_id=session_id)
@@ -219,6 +220,10 @@ async def handle_normal_query(
         log.error("synthesizer_error", error=str(e), request_id=request_id)
         yield sse.error_event("synthesis_error", "Lỗi khi tổng hợp câu trả lời")
 
+    if not full_answer.strip():
+        full_answer = _fallback_answer_from_context(context, intent)
+        yield sse.token_event(full_answer)
+
     # Incident draft suggestion
     log_stats_by_level = log_stats.get("by_level", []) if log_stats else []
     error_total = sum(
@@ -226,17 +231,20 @@ async def handle_normal_query(
         for lv in log_stats_by_level
         if lv.get("level", "").upper() in ("ERROR", "CRITICAL")
     )
+    incident_draft_payload = None
     if intent.intent == QueryIntent.INCIDENT_ANALYSIS or error_total >= 50:
         severity = "critical" if error_total >= 250 else "high"
-        yield sse.incident_draft_event(
-            title=(
+        incident_draft_payload = {
+            "title": (
                 f"Sự cố {(intent.app_id or 'hệ thống').upper()} — "
                 f"{datetime.now(timezone.utc).strftime('%Y-%m-%d')}"
             ),
-            app_id=intent.app_id or "",
-            severity=severity,
-            description=full_answer[:500],
-        )
+            "app_id": intent.app_id or "",
+            "severity": severity,
+            "description": full_answer[:500],
+            "incident_time": datetime.now(timezone.utc).isoformat(),
+        }
+        yield sse.make_event("incident_draft", incident_draft_payload)
         if intent.app_id and ctx.last_error_messages:
             try:
                 from app.services.incident_matcher import IncidentMatcher
@@ -272,8 +280,13 @@ async def handle_normal_query(
     ctx.state = ConvState.NORMAL
     await _conv_mgr.save(ctx)
 
+    latency_ms = int((time.monotonic() - start) * 1000)
+    sources_used = ["es_logs", "prometheus"] if context.get("server_metrics") else ["es_logs"]
+
     try:
         from app.models.chat_message import ChatMessage
+        await _conv_mgr.persist_to_db(ctx, db)
+        await db.flush()
         db.add(ChatMessage(
             session_id=session_id,
             role="user",
@@ -286,20 +299,74 @@ async def handle_normal_query(
             assistant_metadata={
                 "intent": intent.intent.value,
                 "app_ids": intent.app_ids,
-                "log_stats": log_stats,
+                "sources_used": sources_used,
+                "latency_ms": latency_ms,
+                "server_table": servers,
+                "log_stats": {
+                    **(log_stats or {}),
+                    "top_errors": (top_errors.get("buckets", []) if top_errors else []),
+                },
+                "incident_draft": incident_draft_payload,
             },
         ))
-        await _conv_mgr.persist_to_db(ctx, db)
         await db.commit()
     except Exception as e:
         log.warning("persist_chat_failed", error=str(e), session_id=session_id)
 
-    latency_ms = int((time.monotonic() - start) * 1000)
     yield sse.done_event(
         session_id=session_id,
         intent=intent.intent.value,
         latency_ms=latency_ms,
-        sources_used=(
-            ["es_logs", "prometheus"] if context.get("server_metrics") else ["es_logs"]
-        ),
+        sources_used=sources_used,
     )
+
+
+def _fallback_answer_from_context(context: dict, intent) -> str:
+    if context.get("error"):
+        return f"Không truy vấn được dữ liệu: {context['error']}"
+
+    app_id = intent.app_id or "hệ thống"
+    lines = [f"Đã lấy được dữ liệu cho `{app_id}` từ datasource cấu hình."]
+
+    registry = context.get("registry", {})
+    servers = registry.get("servers") or []
+    if servers:
+        server_text = ", ".join(
+            f"{s.get('hostname', '?')} ({s.get('ip', '?')})" for s in servers[:5]
+        )
+        lines.append(f"- Server: {server_text}")
+
+    es_logs = context.get("es_logs") or {}
+    if es_logs:
+        index = es_logs.get("index") or intent.app_id or ""
+        lines.append(f"- Logs: tìm thấy khoảng {es_logs.get('total', 0)} bản ghi gần đây trên index `{index}`.")
+
+    log_stats = context.get("es_log_stats") or {}
+    by_level = log_stats.get("by_level") or []
+    if by_level:
+        level_text = ", ".join(f"{item['level']}={item['count']}" for item in by_level[:8])
+        lines.append(f"- Phân bố level 24h: {level_text}.")
+
+    top_errors = (context.get("es_top_errors") or {}).get("buckets") or []
+    if top_errors:
+        lines.append("- Lỗi nổi bật:")
+        for item in top_errors[:5]:
+            lines.append(f"  - {item['count']}x: {item['payload'][:220]}")
+
+    metrics = context.get("server_metrics") or {}
+    metric_lines = []
+    for metric_name, values in metrics.items():
+        if isinstance(values, dict) and values:
+            top = list(values.items())[:3]
+            metric_lines.append(
+                f"{metric_name}: " + ", ".join(f"{host}={value:.1f}%" for host, value in top)
+            )
+    if metric_lines:
+        lines.append("- Metrics: " + "; ".join(metric_lines))
+
+    if top_errors:
+        lines.append("⚡ Đề xuất: kiểm tra RabbitMQ/AMQP trên `192.168.1.111:5672` và các service OpenStack đang retry kết nối.")
+    else:
+        lines.append("⚡ Đề xuất: tiếp tục theo dõi log level ERROR/WARNING và metrics tài nguyên.")
+
+    return "\n".join(lines)

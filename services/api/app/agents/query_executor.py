@@ -108,8 +108,37 @@ class QueryExecutor:
                     context[name] = None
                 else:
                     context[name] = result
+            self._attach_server_metrics(context)
 
         return context
+
+    def _attach_server_metrics(self, context: dict) -> None:
+        registry = context.get("registry") or {}
+        servers = registry.get("servers") or []
+        metrics = context.get("server_metrics") or {}
+        if not servers or not metrics:
+            return
+
+        for server in servers:
+            server["cpu_pct"] = self._find_metric_for_server(metrics.get("cpu_pct", {}), server)
+            server["ram_pct"] = self._find_metric_for_server(metrics.get("ram_pct", {}), server)
+            server["disk_pct"] = self._find_metric_for_server(metrics.get("disk_pct", {}), server)
+
+    @staticmethod
+    def _find_metric_for_server(metric_values: dict, server: dict) -> float | None:
+        if not isinstance(metric_values, dict):
+            return None
+        ip = (server.get("ip") or "").strip()
+        hostname = (server.get("hostname") or "").strip().lower()
+
+        for instance, value in metric_values.items():
+            instance_text = str(instance).lower()
+            instance_host = instance_text.split(":", 1)[0]
+            if (ip and (instance_host == ip or instance_text.startswith(f"{ip}:"))) or (
+                hostname and (instance_host == hostname or hostname in instance_text)
+            ):
+                return value
+        return None
 
     async def _query_es_logs(self, cfg, intent) -> dict:
         from app.config import settings
@@ -120,6 +149,7 @@ class QueryExecutor:
             ]}},
             "sort": [{"@timestamp": {"order": "desc"}}],
             "size": settings.es_logs_size_normal,
+            "track_total_hits": True,
         }
 
         # Add keyword filter
@@ -128,7 +158,16 @@ class QueryExecutor:
                 {
                     "multi_match": {
                         "query": " ".join(intent.keywords[:5]),
-                        "fields": ["message", "log.message", "tieu_de", "noi_dung"],
+                        "fields": [
+                            "message",
+                            "Payload",
+                            "log.message",
+                            "Logger",
+                            "programname",
+                            "Hostname",
+                            "tieu_de",
+                            "noi_dung",
+                        ],
                     }
                 }
             ]
@@ -154,9 +193,10 @@ class QueryExecutor:
         provider = ElasticsearchProvider(url=cfg.elasticsearch_url, api_key=cfg.elasticsearch_api_key)
         try:
             result = await provider.search(cfg.app_log_index, body, size=settings.es_logs_size_normal)
+            resolved_index = result.get("index", cfg.app_log_index)
             result["_query"] = {
                 "source": "es_logs",
-                "index": cfg.app_log_index,
+                "index": resolved_index,
                 "es_url": cfg.elasticsearch_url,
                 "body": body,
             }
@@ -182,15 +222,31 @@ class QueryExecutor:
             "size": 0,
             "query": {"range": {"@timestamp": {"gte": intent.time_range}}},
             "aggs": {
-                "by_level": {"terms": {"field": "log.level.keyword", "size": 10}},
+                "by_level": {"terms": {"field": "log_level.keyword", "size": 10}},
+                "by_log_level": {"terms": {"field": "log.level.keyword", "size": 10}},
+                "by_plain_level": {"terms": {"field": "level.keyword", "size": 10}},
+                "by_logger": {"terms": {"field": "Logger.keyword", "size": 10}},
+                "by_program": {"terms": {"field": "programname.keyword", "size": 10}},
             },
         }
         from app.providers.log_storage.elasticsearch import ElasticsearchProvider
         provider = ElasticsearchProvider(url=cfg.elasticsearch_url, api_key=cfg.elasticsearch_api_key)
         try:
             result = await provider.search(cfg.app_log_index, body, size=0)
-            buckets = result.get("aggs", {}).get("by_level", {}).get("buckets", [])
-            return {"by_level": [{"level": b["key"], "count": b["doc_count"]} for b in buckets]}
+            aggs = result.get("aggs", {})
+            buckets = (
+                aggs.get("by_level", {}).get("buckets")
+                or aggs.get("by_log_level", {}).get("buckets")
+                or aggs.get("by_plain_level", {}).get("buckets")
+                or []
+            )
+            loggers = aggs.get("by_logger", {}).get("buckets", [])
+            programs = aggs.get("by_program", {}).get("buckets", [])
+            return {
+                "by_level": [{"level": b["key"], "count": b["doc_count"]} for b in buckets],
+                "by_logger": [{"logger": b["key"], "count": b["doc_count"]} for b in loggers],
+                "by_program": [{"program": b["key"], "count": b["doc_count"]} for b in programs],
+            }
         except Exception as e:
             log.warning("log_stats_query_failed", error=str(e))
             return {"by_level": []}
@@ -202,17 +258,28 @@ class QueryExecutor:
             "size": 0,
             "query": {"bool": {"must": [
                 {"range": {"@timestamp": {"gte": intent.time_range}}},
-                {"terms": {"log.level.keyword": ["ERROR", "CRITICAL", "error", "critical"]}},
+                {"bool": {"should": [
+                    {"terms": {"log_level.keyword": ["ERROR", "CRITICAL", "error", "critical"]}},
+                    {"terms": {"log.level.keyword": ["ERROR", "CRITICAL", "error", "critical"]}},
+                    {"terms": {"level.keyword": ["ERROR", "CRITICAL", "error", "critical"]}},
+                    {"wildcard": {"programname.keyword": "*error*"}},
+                ], "minimum_should_match": 1}},
             ]}},
             "aggs": {
-                "top_errors": {"terms": {"field": "message.keyword", "size": settings.es_agg_topk}},
+                "top_errors": {"terms": {"field": "Payload.keyword", "size": settings.es_agg_topk}},
+                "top_messages": {"terms": {"field": "message.keyword", "size": settings.es_agg_topk}},
             },
         }
         from app.providers.log_storage.elasticsearch import ElasticsearchProvider
         provider = ElasticsearchProvider(url=cfg.elasticsearch_url, api_key=cfg.elasticsearch_api_key)
         try:
             result = await provider.search(cfg.app_log_index, body, size=0)
-            buckets = result.get("aggs", {}).get("top_errors", {}).get("buckets", [])
+            aggs = result.get("aggs", {})
+            buckets = (
+                aggs.get("top_errors", {}).get("buckets")
+                or aggs.get("top_messages", {}).get("buckets")
+                or []
+            )
             return {"buckets": [{"payload": b["key"], "count": b["doc_count"]} for b in buckets]}
         except Exception as e:
             log.warning("top_errors_query_failed", error=str(e))
@@ -234,11 +301,12 @@ class QueryExecutor:
                 ' / node_filesystem_size_bytes{mountpoint="/"}))'
             ),
         }
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        prometheus_url = cfg.prometheus_url.rstrip("/")
+        async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
             for metric, q in queries.items():
                 try:
                     resp = await client.get(
-                        f"{cfg.prometheus_url}/api/v1/query",
+                        f"{prometheus_url}/api/v1/query",
                         params={"query": q},
                     )
                     resp.raise_for_status()

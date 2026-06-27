@@ -26,7 +26,7 @@ class DatasourceCreate(BaseModel):
     elasticsearch_url: str
     elasticsearch_api_key: str | None = None
     app_log_index: str
-    syslog_index: str = "vst-txt-logs"
+    syslog_index: str = "aiops-txt-logs"
     prometheus_url: str | None = None
     prometheus_extra_labels: dict | None = None
     kibana_url: str | None = None
@@ -276,11 +276,27 @@ async def test_datasource_connection(
             api_key = decrypt(row.elasticsearch_api_key)
             headers["Authorization"] = f"ApiKey {api_key}"
 
+        es_url = row.elasticsearch_url.rstrip("/")
         async with httpx.AsyncClient(timeout=settings.es_logs_timeout, verify=False) as client:
-            resp = await client.get(f"{row.elasticsearch_url}/_cluster/health", headers=headers)
+            resp = await client.get(f"{es_url}/_cluster/health", headers=headers)
+            index_name = row.app_log_index.strip().strip("/")
+            index_resp = await client.head(f"{es_url}/{index_name}", headers=headers)
+            resolved_index = index_name
+            if index_resp.status_code >= 400 and "*" not in index_name and "," not in index_name:
+                wildcard_index = f"{index_name}-*"
+                wildcard_resp = await client.get(
+                    f"{es_url}/_cat/indices/{wildcard_index}",
+                    headers=headers,
+                    params={"format": "json", "h": "index"},
+                )
+                if wildcard_resp.status_code < 400 and wildcard_resp.json():
+                    resolved_index = wildcard_index
+                    index_resp = wildcard_resp
             results["elasticsearch"] = {
-                "status": "ok" if resp.status_code < 400 else "error",
+                "status": "ok" if resp.status_code < 400 and index_resp.status_code < 400 else "error",
                 "http_status": resp.status_code,
+                "index": resolved_index,
+                "index_status": index_resp.status_code,
             }
     except Exception as e:
         results["elasticsearch"] = {"status": "error", "error": str(e)}
@@ -288,8 +304,9 @@ async def test_datasource_connection(
     # Test Prometheus (nếu có)
     if row.prometheus_url:
         try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                resp = await client.get(f"{row.prometheus_url}/-/healthy")
+            prom_url = row.prometheus_url.rstrip("/")
+            async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
+                resp = await client.get(f"{prom_url}/-/healthy")
                 results["prometheus"] = {
                     "status": "ok" if resp.status_code == 200 else "error",
                     "http_status": resp.status_code,

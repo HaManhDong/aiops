@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import time
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException
@@ -93,16 +94,18 @@ async def update_provider_config(
     await _set_setting(db, _LLM_URL_KEY, body.url)
     await _set_setting(db, _LLM_MODEL_KEY, body.model)
 
+    existing_api_key_enc = await _get_setting(db, _LLM_API_KEY_KEY)
     if body.api_key:
         from app.services.encryption import encrypt
-        await _set_setting(db, _LLM_API_KEY_KEY, encrypt(body.api_key))
+        existing_api_key_enc = encrypt(body.api_key)
+        await _set_setting(db, _LLM_API_KEY_KEY, existing_api_key_enc)
 
     # Cache provider config in Redis
     cache_val = json.dumps({
         "provider": body.provider,
         "url": body.url,
         "model": body.model,
-        "api_key": body.api_key or "",
+        "api_key_enc": existing_api_key_enc or "",
     })
     try:
         from app.redis_client import get_redis
@@ -122,5 +125,28 @@ async def update_provider_config(
         provider=body.provider,
         url=body.url,
         model=body.model,
-        has_api_key=bool(body.api_key),
+        has_api_key=bool(existing_api_key_enc),
     )
+
+
+@router.get("/test")
+async def test_provider_config(
+    _: CurrentUser = Depends(require_admin),
+):
+    started = time.perf_counter()
+    try:
+        from app.providers import get_llm_provider
+
+        provider = await get_llm_provider()
+        await provider.generate_json(
+            'Trả về JSON đúng dạng {"ok": true}.',
+            system="Bạn chỉ trả về JSON hợp lệ.",
+            temperature=0.0,
+        )
+        return {"ok": True, "latency_ms": int((time.perf_counter() - started) * 1000), "error": None}
+    except Exception as exc:
+        return {
+            "ok": False,
+            "latency_ms": int((time.perf_counter() - started) * 1000),
+            "error": str(exc),
+        }

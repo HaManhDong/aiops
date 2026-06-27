@@ -7,21 +7,20 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Progress } from "@/components/ui/progress"
-import { Separator } from "@/components/ui/separator"
 import { apiJson, apiFetch } from "@/lib/api"
 import { readSSEStream } from "@/lib/sse"
 
 interface ProviderConfig {
   provider: string
-  base_url: string
+  url: string
   model: string
   api_key?: string
-  temperature: number
-  max_tokens: number
-  stream: boolean
+  has_api_key?: boolean
 }
 
 const PROVIDERS = ["openai_compatible", "ollama", "openai", "azure_openai"]
+const OPENAI_DEFAULT_URL = "https://api.openai.com"
+const OPENAI_DEFAULT_MODEL = "gpt-5.5"
 
 export default function LLMConfigPage() {
   const [config, setConfig] = useState<ProviderConfig | null>(null)
@@ -52,7 +51,15 @@ export default function LLMConfigPage() {
     if (!draft) return
     setSaving(true)
     try {
-      await apiJson("/api/v1/admin/llm-config", { method: "PUT", body: JSON.stringify(draft) })
+      await apiJson("/api/v1/admin/llm-config/provider-config", {
+        method: "POST",
+        body: JSON.stringify({
+          provider: draft.provider,
+          url: draft.url,
+          model: draft.model,
+          api_key: draft.api_key || undefined,
+        }),
+      })
       toast.success("Đã lưu LLM config")
       load()
     } catch (err: unknown) { toast.error(err instanceof Error ? err.message : "Lỗi") }
@@ -111,13 +118,25 @@ export default function LLMConfigPage() {
     <div className="p-6 space-y-6 max-w-2xl">
       <h1 className="text-xl font-bold">LLM Configuration</h1>
 
-      <Card>
+      <Card className="ops-card rounded-xl">
         <CardHeader><CardTitle className="text-sm">Provider Settings</CardTitle></CardHeader>
         <CardContent className="space-y-4">
+          <div className="rounded-lg border border-orange-200 bg-orange-50 p-3 text-sm text-orange-900">
+            Đang cấu hình OpenAI API. API key được mã hóa trước khi lưu vào database.
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <Label className="text-xs">Provider</Label>
-              <Select value={draft.provider} onValueChange={(v) => setDraft((d) => d ? { ...d, provider: v } : d)}>
+              <Select
+                value={draft.provider}
+                onValueChange={(v) => setDraft((d) => d ? {
+                  ...d,
+                  provider: v,
+                  url: v === "openai" ? OPENAI_DEFAULT_URL : d.url,
+                  model: v === "openai" ? OPENAI_DEFAULT_MODEL : d.model,
+                } : d)}
+              >
                 <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {PROVIDERS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
@@ -126,32 +145,28 @@ export default function LLMConfigPage() {
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Model</Label>
-              <Input value={draft.model ?? ""} onChange={(e) => setDraft((d) => d ? { ...d, model: e.target.value } : d)} className="h-8 text-sm" placeholder="qwen2.5:14b" />
+              <Input value={draft.model ?? ""} onChange={(e) => setDraft((d) => d ? { ...d, model: e.target.value } : d)} className="h-8 text-sm" placeholder={OPENAI_DEFAULT_MODEL} />
             </div>
           </div>
 
           <div className="space-y-1">
             <Label className="text-xs">Base URL</Label>
-            <Input value={draft.base_url ?? ""} onChange={(e) => setDraft((d) => d ? { ...d, base_url: e.target.value } : d)} className="h-8 text-sm font-mono" placeholder="http://localhost:11434" />
+            <Input value={draft.url ?? ""} onChange={(e) => setDraft((d) => d ? { ...d, url: e.target.value } : d)} className="h-8 text-sm font-mono" placeholder={OPENAI_DEFAULT_URL} />
           </div>
 
           <div className="space-y-1">
-            <Label className="text-xs">API Key (để trống nếu không cần)</Label>
+            <Label className="text-xs">API Key {draft.has_api_key ? "(đã lưu, nhập mới nếu muốn thay)" : ""}</Label>
             <Input type="password" value={draft.api_key ?? ""} onChange={(e) => setDraft((d) => d ? { ...d, api_key: e.target.value } : d)} className="h-8 text-sm" />
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
-            <div className="space-y-1">
-              <Label className="text-xs">Temperature</Label>
-              <Input type="number" step="0.1" min="0" max="2" value={draft.temperature} onChange={(e) => setDraft((d) => d ? { ...d, temperature: parseFloat(e.target.value) } : d)} className="h-8 text-sm" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Max Tokens</Label>
-              <Input type="number" value={draft.max_tokens} onChange={(e) => setDraft((d) => d ? { ...d, max_tokens: parseInt(e.target.value) } : d)} className="h-8 text-sm" />
-            </div>
-          </div>
-
           <div className="flex gap-2 pt-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setDraft((d) => d ? { ...d, provider: "openai", url: OPENAI_DEFAULT_URL, model: OPENAI_DEFAULT_MODEL } : d)}
+            >
+              Dùng OpenAI
+            </Button>
             <Button size="sm" onClick={handleSave} disabled={saving}>{saving ? "Đang lưu..." : "Lưu"}</Button>
             <Button size="sm" variant="outline" onClick={handleTest} disabled={testing}>{testing ? "Đang test..." : "Test kết nối"}</Button>
             {testResult && (

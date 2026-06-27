@@ -1,6 +1,6 @@
 "use client"
 import { useState } from "react"
-import { AlertTriangle } from "lucide-react"
+import { AlertTriangle, FilePlus2 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { apiJson } from "@/lib/api"
@@ -36,25 +36,27 @@ export function IncidentDraftCard({ draft }: Props) {
   }
 
   return (
-    <div className="rounded-md border border-yellow-200 bg-yellow-50 p-3 text-sm mt-2 dark:border-yellow-800 dark:bg-yellow-950">
-      <div className="flex items-start gap-2">
-        <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 shrink-0" />
-        <div className="flex-1 space-y-1">
-          <p className="font-medium">{draft.title}</p>
-          <p className="text-xs text-muted-foreground">
-            {draft.app_id.toUpperCase()} · {draft.severity.toUpperCase()} ·{" "}
-            {draft.incident_time ? new Date(draft.incident_time).toLocaleString("vi") : ""}
-          </p>
-          {draft.description && (
-            <p className="text-xs text-muted-foreground line-clamp-2">{draft.description}</p>
-          )}
+    <div className="overflow-hidden rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 shadow-lg shadow-amber-200/40">
+      <div className="flex items-start gap-3 p-4">
+        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber-500 text-white shadow-lg shadow-amber-500/20">
+          <AlertTriangle className="h-5 w-5" />
+        </div>
+        <div className="min-w-0 flex-1 space-y-2">
+          <div>
+            <p className="text-sm font-semibold text-slate-950">{draft.title}</p>
+            <p className="mt-1 text-xs font-medium uppercase tracking-wide text-amber-700">
+              {draft.app_id} · {draft.severity} · {draft.incident_time ? new Date(draft.incident_time).toLocaleString("vi") : ""}
+            </p>
+          </div>
+          {draft.description && <p className="line-clamp-3 text-xs leading-5 text-slate-600">{draft.description}</p>}
         </div>
         {!created ? (
-          <Button size="sm" variant="outline" className="shrink-0" disabled={loading} onClick={handleCreate}>
+          <Button size="sm" className="shrink-0 gap-1 bg-slate-950 text-white hover:bg-slate-800" disabled={loading} onClick={handleCreate}>
+            <FilePlus2 className="h-3.5 w-3.5" />
             {loading ? "Đang tạo..." : "Tạo incident"}
           </Button>
         ) : (
-          <span className="text-xs text-green-600 font-medium shrink-0">✓ Đã tạo</span>
+          <span className="shrink-0 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">✓ Đã tạo</span>
         )}
       </div>
     </div>

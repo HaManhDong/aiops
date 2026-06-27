@@ -47,7 +47,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-muted/40">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle className="text-2xl text-center">VST AI OpsAI</CardTitle>
+          <CardTitle className="text-2xl text-center">AI OpsAI</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">

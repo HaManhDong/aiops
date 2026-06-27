@@ -24,6 +24,7 @@ function NavLink({ item, depth = 0 }: { item: NavItem; depth?: number }) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const isActive = item.href ? pathname.startsWith(item.href) : false
+  const iconWrap = "grid h-7 w-7 shrink-0 place-items-center rounded-md bg-white/6 text-slate-300"
 
   if (item.children) {
     return (
@@ -31,12 +32,12 @@ function NavLink({ item, depth = 0 }: { item: NavItem; depth?: number }) {
         <button
           onClick={() => setOpen((v) => !v)}
           className={cn(
-            "flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors",
-            "hover:bg-muted text-muted-foreground",
+            "flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition-colors",
+            "text-slate-300 hover:bg-white/8 hover:text-white",
             depth > 0 && "pl-8"
           )}
         >
-          {item.icon}
+          <span className={iconWrap}>{item.icon}</span>
           <span className="flex-1 text-left">{item.label}</span>
           {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
         </button>
@@ -55,14 +56,14 @@ function NavLink({ item, depth = 0 }: { item: NavItem; depth?: number }) {
     <Link
       href={item.href!}
       className={cn(
-        "flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors",
+        "flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition-colors",
         isActive
-          ? "bg-primary text-primary-foreground"
-          : "hover:bg-muted text-muted-foreground",
+          ? "bg-orange-400/16 text-white ring-1 ring-orange-300/30"
+          : "text-slate-300 hover:bg-white/8 hover:text-white",
         depth > 0 && "pl-8"
       )}
     >
-      {item.icon}
+      <span className={cn(iconWrap, isActive && "bg-orange-300/18 text-orange-200")}>{item.icon}</span>
       {item.label}
     </Link>
   )
@@ -115,20 +116,27 @@ export function Sidebar() {
   ]
 
   return (
-    <aside className="flex h-screen w-60 flex-col border-r bg-card">
-      <div className="flex h-14 items-center border-b px-4">
-        <span className="font-semibold text-sm">VST AI OpsAI</span>
+    <aside className="flex h-screen w-64 shrink-0 flex-col border-r border-slate-800/90 bg-slate-950 text-slate-100 shadow-2xl shadow-slate-950/30">
+      <div className="flex h-16 items-center gap-3 border-b border-white/10 px-4">
+        <div className="grid h-9 w-9 place-items-center rounded-lg bg-orange-400 text-sm font-bold text-slate-950 shadow-lg shadow-orange-500/25">
+          AI
+        </div>
+        <div>
+          <span className="block text-sm font-semibold tracking-wide">AI OpsAI</span>
+          <span className="block text-[11px] text-slate-400">Operations cockpit</span>
+        </div>
       </div>
-      <nav className="flex-1 overflow-y-auto p-2 space-y-1">
+      <nav className="flex-1 overflow-y-auto p-3 space-y-1">
         {navItems.map((item) => (
           <NavLink key={item.label} item={item} />
         ))}
       </nav>
-      <div className="border-t p-2">
-        <div className="px-3 py-1 text-xs text-muted-foreground truncate">
-          {user?.full_name ?? user?.username} · {user?.role}
+      <div className="border-t border-white/10 p-3">
+        <div className="mb-2 rounded-lg bg-white/6 px-3 py-2">
+          <div className="truncate text-xs font-medium text-slate-100">{user?.full_name ?? user?.username}</div>
+          <div className="text-[11px] uppercase tracking-wide text-orange-200">{user?.role}</div>
         </div>
-        <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-muted-foreground" onClick={handleLogout}>
+        <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-slate-300 hover:bg-white/8 hover:text-white" onClick={handleLogout}>
           <LogOut className="h-4 w-4" />
           Đăng xuất
         </Button>

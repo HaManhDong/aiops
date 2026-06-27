@@ -23,7 +23,8 @@ export function ChatInput({ value, onChange, onSubmit, disabled, placeholder }: 
   }
 
   return (
-    <div className="flex gap-2 items-end p-3 border-t bg-background">
+    <div className="border-t border-orange-100 bg-white/90 p-4 backdrop-blur">
+      <div className="mx-auto flex max-w-5xl items-end gap-3 rounded-2xl border border-orange-100 bg-white p-2 shadow-xl shadow-slate-200/60">
       <Textarea
         ref={ref}
         value={value}
@@ -31,17 +32,18 @@ export function ChatInput({ value, onChange, onSubmit, disabled, placeholder }: 
         onKeyDown={handleKeyDown}
         placeholder={placeholder ?? "Nhập câu hỏi... (Enter để gửi, Shift+Enter xuống dòng)"}
         rows={2}
-        className="resize-none flex-1 min-h-[60px] max-h-[120px]"
+        className="min-h-[56px] max-h-[140px] flex-1 resize-none border-0 bg-transparent shadow-none focus-visible:ring-0"
         disabled={disabled}
       />
       <Button
         size="icon"
-        className="h-10 w-10 shrink-0"
+        className="h-11 w-11 shrink-0 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 text-white shadow-lg shadow-orange-500/20 hover:from-orange-600 hover:to-amber-600"
         disabled={disabled || !value.trim()}
         onClick={onSubmit}
       >
         <Send className="h-4 w-4" />
       </Button>
+      </div>
     </div>
   )
 }

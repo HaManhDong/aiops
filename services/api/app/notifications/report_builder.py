@@ -137,5 +137,5 @@ async def build_daily_report(app_id: str | None, window_hours: int = 24) -> str:
         break  # single DB iteration
 
     lines.append("\n---")
-    lines.append("_Báo cáo tự động từ VST AI OpsAI Platform_")
+    lines.append("_Báo cáo tự động từ AI OpsAI Platform_")
     return "\n".join(lines)

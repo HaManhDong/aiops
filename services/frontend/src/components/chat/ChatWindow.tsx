@@ -1,16 +1,17 @@
 "use client"
 import { useEffect, useRef, useCallback, useState } from "react"
-import { usePathname } from "next/navigation"
+import Link from "next/link"
+import { usePathname, useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { v4 as uuidv4 } from "uuid"
 import { useAuthStore } from "@/store/auth"
 import { useChatStore } from "@/store/chat"
-import { apiFetch } from "@/lib/api"
+import { apiFetch, apiJson } from "@/lib/api"
 import { readSSEStream } from "@/lib/sse"
 import { MessageBubble } from "./MessageBubble"
 import { ChatInput } from "./ChatInput"
 import { RequiresInputForm } from "./RequiresInputForm"
-import type { ServerRow, LogStats, IncidentDraft, EsQuery } from "@/types/api"
+import type { ChatSession, ServerRow, LogStats, IncidentDraft, EsQuery } from "@/types/api"
 
 interface Props {
   initialSessionId?: string
@@ -19,6 +20,7 @@ interface Props {
 
 export function ChatWindow({ initialSessionId, initialAppId = "" }: Props) {
   const pathname = usePathname()
+  const router = useRouter()
   const user = useAuthStore((s) => s.user)
   const setSessionId = useAuthStore((s) => s.setSessionId)
 
@@ -32,35 +34,66 @@ export function ChatWindow({ initialSessionId, initialAppId = "" }: Props) {
 
   const [input, setInput] = useState("")
   const [appId, setAppId] = useState(initialAppId)
+  const [currentSessionId, setCurrentSessionId] = useState(initialSessionId ?? "")
+  const [sessions, setSessions] = useState<ChatSession[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
 
-  // Load history if initialSessionId
+  const loadSessions = useCallback(async () => {
+    try {
+      const data = await apiJson<ChatSession[]>("/api/v1/chat/sessions?limit=50")
+      setSessions(Array.isArray(data) ? data : [])
+    } catch {
+      setSessions([])
+    }
+  }, [])
+
+  useEffect(() => { loadSessions() }, [loadSessions])
+
   useEffect(() => {
-    if (!initialSessionId) { clearMessages(); return }
+    setCurrentSessionId(initialSessionId ?? "")
+  }, [initialSessionId])
+
+  // Load history if currentSessionId
+  useEffect(() => {
+    if (!currentSessionId) {
+      clearMessages()
+      setAppId(initialAppId)
+      setCurrentAppId(initialAppId)
+      return
+    }
     async function loadHistory() {
+      setHistoryLoading(true)
       try {
-        const res = await apiFetch(`/api/v1/chat/history?session_id=${initialSessionId}&limit=50`)
+        const res = await apiFetch(`/api/v1/chat/history?session_id=${currentSessionId}&limit=100`)
         if (!res.ok) return
-        const data = await res.json()
-        const msgs = (data.messages ?? []).map((m: Record<string, unknown>) => ({
-          id: uuidv4(),
+        const data = await res.json() as Record<string, unknown>[]
+        const msgs = data.map((m) => {
+          const metadata = (m.assistant_metadata as Record<string, unknown> | null) ?? {}
+          return {
+          id: (m.id as string) || uuidv4(),
           role: m.role as "user" | "assistant",
           content: m.content as string,
-          created_at: m.timestamp as string,
-          intent: (m.assistant_metadata as Record<string, unknown>)?.intent as string | undefined,
-          sources_used: (m.assistant_metadata as Record<string, unknown>)?.sources_used as string[] | undefined,
-          latency_ms: (m.assistant_metadata as Record<string, unknown>)?.latency_ms as number | undefined,
-          server_table: (m.assistant_metadata as Record<string, unknown>)?.server_table as ServerRow[] | undefined,
-          log_stats: (m.assistant_metadata as Record<string, unknown>)?.log_stats as LogStats | undefined,
-          incident_draft: (m.assistant_metadata as Record<string, unknown>)?.incident_draft as IncidentDraft | undefined,
-        }))
+          created_at: m.created_at as string,
+          intent: metadata.intent as string | undefined,
+          sources_used: metadata.sources_used as string[] | undefined,
+          latency_ms: metadata.latency_ms as number | undefined,
+          server_table: metadata.server_table as ServerRow[] | undefined,
+          log_stats: metadata.log_stats as LogStats | undefined,
+          incident_draft: metadata.incident_draft as IncidentDraft | undefined,
+        }})
         setMessages(msgs)
-        if (data.app_id) { setAppId(data.app_id); setCurrentAppId(data.app_id) }
-      } catch { /* ignore */ }
+        const session = sessions.find((item) => item.id === currentSessionId)
+        if (session?.app_id) { setAppId(session.app_id); setCurrentAppId(session.app_id) }
+      } catch {
+        toast.error("Không tải được lịch sử chat")
+      } finally {
+        setHistoryLoading(false)
+      }
     }
     loadHistory()
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialSessionId])
+  }, [currentSessionId])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -88,7 +121,7 @@ export function ChatWindow({ initialSessionId, initialAppId = "" }: Props) {
       const effectiveAppId = appId || (user?.allowed_apps[0] !== "all" ? user?.allowed_apps[0] ?? "" : "")
       const body: Record<string, string> = { message: text }
       if (effectiveAppId) body.app_id = effectiveAppId
-      if (initialSessionId) body.session_id = initialSessionId
+      if (currentSessionId) body.session_id = currentSessionId
 
       const res = await apiFetch("/api/v1/chat", {
         method: "POST",
@@ -130,10 +163,12 @@ export function ChatWindow({ initialSessionId, initialAppId = "" }: Props) {
             if (rafId !== null) { cancelAnimationFrame(rafId); flushTokens() }
             const sid = d.session_id as string | undefined
             if (sid) {
+              setCurrentSessionId(sid)
               setSessionId(sid)
               if (pathname === "/chat") {
                 window.history.replaceState(null, "", `/chat/${sid}`)
               }
+              loadSessions()
             }
             if ((d.next_state as string) === "CONFIRMING_SERVER") {
               setConvState("CONFIRMING_SERVER")
@@ -168,15 +203,77 @@ export function ChatWindow({ initialSessionId, initialAppId = "" }: Props) {
       setIsStreaming(false)
     }
   }, [
-    isStreaming, appId, user, initialSessionId, pathname,
+    isStreaming, appId, user, currentSessionId, pathname, loadSessions,
     addMessage, appendToMessage, appendStepToMessage, appendEsQueryToMessage,
     setMessageServerTable, setMessageLogStats, setMessageIncidentDraft,
     setMessageError, setPendingForm, setConvState, setIsStreaming, setSessionId,
   ])
 
+  async function handleDeleteSession(sessionId: string) {
+    try {
+      await apiFetch(`/api/v1/chat/sessions/${sessionId}`, { method: "DELETE" })
+      toast.success("Đã xóa lịch sử chat")
+      await loadSessions()
+      if (sessionId === currentSessionId) {
+        setCurrentSessionId("")
+        clearMessages()
+        router.replace("/chat")
+      }
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Không xóa được lịch sử")
+    }
+  }
+
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+    <div className="flex h-[calc(100vh-0px)] min-h-0 overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(251,146,60,0.12),transparent_32%),linear-gradient(180deg,#fff7ed_0%,#ffffff_36%)]">
+      <aside className="sticky top-0 hidden h-screen w-72 shrink-0 border-r border-orange-100 bg-white/80 p-3 shadow-xl shadow-slate-200/40 backdrop-blur md:flex md:flex-col">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <p className="text-sm font-semibold">Lịch sử chat</p>
+          <Link
+            href="/chat"
+            onClick={() => {
+              setCurrentSessionId("")
+              clearMessages()
+            }}
+            className="rounded-md border px-2 py-1 text-xs hover:bg-muted"
+          >
+            Chat mới
+          </Link>
+        </div>
+        <div className="min-h-0 flex-1 space-y-1 overflow-y-auto pr-1">
+          {sessions.length === 0 && (
+            <p className="px-2 py-6 text-center text-xs text-muted-foreground">Chưa có lịch sử.</p>
+          )}
+          {sessions.map((session) => (
+            <div
+              key={session.id}
+              className={`group flex items-start gap-2 rounded-lg px-2 py-2 text-sm ${
+                session.id === currentSessionId ? "bg-orange-50 text-orange-950 ring-1 ring-orange-200" : "hover:bg-slate-50"
+              }`}
+            >
+              <Link href={`/chat/${session.id}`} className="min-w-0 flex-1">
+                <span className="block truncate font-medium">{session.title || "Cuộc chat chưa đặt tên"}</span>
+                <span className="block truncate text-xs text-muted-foreground">
+                  {session.app_id || "general"} · {new Date(session.updated_at).toLocaleString("vi")}
+                </span>
+              </Link>
+              <button
+                className="text-xs text-muted-foreground opacity-0 hover:text-destructive group-hover:opacity-100"
+                onClick={() => handleDeleteSession(session.id)}
+                aria-label="Xóa lịch sử chat"
+              >
+                Xóa
+              </button>
+            </div>
+          ))}
+        </div>
+      </aside>
+
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+      <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-5">
+        {historyLoading && (
+          <p className="text-center text-xs text-muted-foreground">Đang tải lịch sử...</p>
+        )}
         {messages.length === 0 && (
           <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
             Đặt câu hỏi về hệ thống...
@@ -213,6 +310,7 @@ export function ChatWindow({ initialSessionId, initialAppId = "" }: Props) {
           disabled={isStreaming}
         />
       )}
+      </div>
     </div>
   )
 }

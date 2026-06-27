@@ -10,6 +10,7 @@ from starlette.requests import Request
 
 def setup_logging(log_level: str = "INFO") -> None:
     level = getattr(logging, log_level.upper(), logging.INFO)
+    logging.basicConfig(level=level, format="%(message)s")
     structlog.configure(
         processors=[
             structlog.stdlib.add_log_level,
@@ -20,7 +21,7 @@ def setup_logging(log_level: str = "INFO") -> None:
         ],
         wrapper_class=structlog.make_filtering_bound_logger(level),
         context_class=dict,
-        logger_factory=structlog.PrintLoggerFactory(),
+        logger_factory=structlog.stdlib.LoggerFactory(),
     )
 
 

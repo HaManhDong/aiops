@@ -48,6 +48,7 @@ class MessageRead(BaseModel):
 async def _stream_chat(
     message: str,
     session_id: str,
+    requested_app_id: str | None,
     current_user: CurrentUser,
     config_svc: ConfigService,
     db: AsyncSession,
@@ -57,6 +58,8 @@ async def _stream_chat(
 
     # Load/create conversation context
     ctx = await _conv_mgr.load_or_create(session_id, current_user.user_id)
+    if requested_app_id:
+        ctx.app_id = requested_app_id
 
     # Load recent history
     from app.models.chat_message import ChatMessage
@@ -196,6 +199,7 @@ async def chat(
             async for event in _stream_chat(
                 message=body.message,
                 session_id=session_id,
+                requested_app_id=body.app_id,
                 current_user=current_user,
                 config_svc=config_svc,
                 db=db,
@@ -220,6 +224,7 @@ async def chat(
 
 @router.get("/sessions", response_model=list[SessionRead])
 async def list_sessions(
+    limit: int = Query(50, ge=1, le=200),
     current_user: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -229,7 +234,7 @@ async def list_sessions(
             select(ChatSession)
             .where(ChatSession.user_id == current_user.user_id)
             .order_by(ChatSession.updated_at.desc())
-            .limit(50)
+            .limit(limit)
         )
     ).scalars().all()
     return [

@@ -23,9 +23,45 @@ async def get_llm_provider() -> LLMProvider:
         cached = await redis.get(_SETTINGS_CACHE_KEY)
         if cached:
             cfg = json.loads(cached)
+            if cfg.get("api_key_enc") and not cfg.get("api_key"):
+                from app.services.encryption import decrypt
+                cfg["api_key"] = decrypt(cfg["api_key_enc"])
             return _build_provider(cfg)
     except Exception as e:
         log.warning("llm_provider_cache_miss", error=str(e))
+
+    try:
+        from sqlalchemy import select
+
+        from app.database import get_db
+        from app.models.system_setting import SystemSetting
+        from app.services.encryption import decrypt
+
+        keys = {"llm.provider", "llm.url", "llm.model", "llm.api_key_enc"}
+        async for db in get_db():
+            rows = (
+                await db.execute(select(SystemSetting).where(SystemSetting.key_name.in_(keys)))
+            ).scalars().all()
+            values = {row.key_name: row.value for row in rows}
+            if values:
+                api_key_enc = values.get("llm.api_key_enc") or ""
+                cfg = {
+                    "provider": values.get("llm.provider", ""),
+                    "url": values.get("llm.url", ""),
+                    "model": values.get("llm.model", ""),
+                    "api_key_enc": api_key_enc,
+                    "api_key": decrypt(api_key_enc) if api_key_enc else "",
+                }
+                cache_cfg = {key: value for key, value in cfg.items() if key != "api_key"}
+                try:
+                    redis = await get_redis()
+                    await redis.setex(_SETTINGS_CACHE_KEY, _SETTINGS_CACHE_TTL, json.dumps(cache_cfg))
+                except Exception:
+                    pass
+                return _build_provider(cfg)
+            break
+    except Exception as e:
+        log.warning("llm_provider_db_load_fail", error=str(e))
 
     # Fallback to env settings
     from app.config import settings

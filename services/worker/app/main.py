@@ -65,7 +65,7 @@ async def _run_collection_cycle() -> None:
                 cfg = {
                     "elasticsearch_url": es_url,
                     "elasticsearch_api_key": es_key,
-                    "app_log_index": log_index or f"vst-txt-logs-{app_id}",
+                    "app_log_index": log_index or f"aiops-txt-logs-{app_id}",
                     "txt_watch_dirs": watch_dirs,
                 }
                 try:
@@ -102,7 +102,7 @@ async def lifespan(app: FastAPI):
     log.info("worker_stopped")
 
 
-app = FastAPI(title="VST TXT Log Collector Worker", lifespan=lifespan)
+app = FastAPI(title="TXT Log Collector Worker", lifespan=lifespan)
 
 
 @app.get("/")

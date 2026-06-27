@@ -52,7 +52,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="VST AI OpsAI Platform",
+    title="AI OpsAI Platform",
     version="1.0.0",
     lifespan=lifespan,
     docs_url="/api/docs",

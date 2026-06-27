@@ -7,12 +7,18 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { apiJson } from "@/lib/api"
 import { DEBOUNCE_MS } from "@/lib/constants"
-import type { ServerRegistryItem } from "@/types/api"
+import type { DatasourceConfig, ServerRegistryItem } from "@/types/api"
+
+type ServersResponse = ServerRegistryItem[] | { servers: ServerRegistryItem[] }
+type DatasourceResponse = DatasourceConfig[] | { datasources: DatasourceConfig[] }
 
 export default function ServersPage() {
   const [items, setItems] = useState<ServerRegistryItem[]>([])
+  const [apps, setApps] = useState<DatasourceConfig[]>([])
+  const [appId, setAppId] = useState("")
   const [loading, setLoading] = useState(true)
   const [inputValue, setInputValue] = useState("")
   const [query, setQuery] = useState("")
@@ -31,13 +37,26 @@ export default function ServersPage() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
+      const datasourceData = await apiJson<DatasourceResponse>("/api/v1/admin/services")
+      const datasources = Array.isArray(datasourceData) ? datasourceData : datasourceData.datasources ?? []
+      const activeApps = datasources.filter((d) => d.is_active)
+      setApps(activeApps)
+
+      const selectedApp = appId || activeApps[0]?.app_id || datasources[0]?.app_id || ""
+      if (!appId && selectedApp) setAppId(selectedApp)
+      if (!selectedApp) {
+        setItems([])
+        return
+      }
+
       const params = new URLSearchParams()
+      params.set("app_id", selectedApp)
       if (query) params.set("search", query)
-      const data = await apiJson<{ servers: ServerRegistryItem[] }>(`/api/v1/servers?${params}`)
-      setItems(data.servers ?? [])
+      const data = await apiJson<ServersResponse>(`/api/v1/servers?${params}`)
+      setItems(Array.isArray(data) ? data : data.servers ?? [])
     } catch (err: unknown) { toast.error(err instanceof Error ? err.message : "Lỗi") }
     finally { setLoading(false) }
-  }, [query])
+  }, [appId, query])
 
   useEffect(() => { load() }, [load])
 
@@ -58,6 +77,7 @@ export default function ServersPage() {
       await apiJson("/api/v1/servers", { method: "POST", body: JSON.stringify({ app_id: addAppId, servers }) })
       toast.success("Đã thêm server")
       setAddOpen(false)
+      setAppId(addAppId)
       setAddRows([{ ip: "", hostname: "", os: "" }])
       load()
     } catch (err: unknown) { toast.error(err instanceof Error ? err.message : "Lỗi") }
@@ -70,10 +90,22 @@ export default function ServersPage() {
         <Button size="sm" onClick={() => setAddOpen(true)}><Plus className="h-4 w-4 mr-1" /> Thêm</Button>
       </div>
 
-      <div className="relative max-w-xs">
-        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-        <Input className="pl-8 pr-8" placeholder="Tìm IP, hostname..." value={inputValue} onChange={(e) => handleSearch(e.target.value)} />
-        {inputValue && <button className="absolute right-2.5 top-2.5" onClick={() => { setInputValue(""); setQuery(""); }}><X className="h-4 w-4 text-muted-foreground" /></button>}
+      <div className="flex flex-col gap-3 md:flex-row md:items-center">
+        <Select value={appId} onValueChange={setAppId}>
+          <SelectTrigger className="w-full md:w-56">
+            <SelectValue placeholder="Chọn app" />
+          </SelectTrigger>
+          <SelectContent>
+            {apps.map((app) => (
+              <SelectItem key={app.app_id} value={app.app_id}>{app.display_name} ({app.app_id})</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <div className="relative max-w-xs flex-1">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input className="pl-8 pr-8" placeholder="Tìm IP, hostname..." value={inputValue} onChange={(e) => handleSearch(e.target.value)} />
+          {inputValue && <button className="absolute right-2.5 top-2.5" onClick={() => { setInputValue(""); setQuery(""); }}><X className="h-4 w-4 text-muted-foreground" /></button>}
+        </div>
       </div>
 
       {loading ? <p className="text-sm text-muted-foreground">Đang tải...</p> : (
@@ -90,6 +122,13 @@ export default function ServersPage() {
               </tr>
             </thead>
             <tbody>
+              {!items.length && (
+                <tr>
+                  <td className="px-3 py-8 text-center text-sm text-muted-foreground" colSpan={6}>
+                    Chưa có server cho app này.
+                  </td>
+                </tr>
+              )}
               {items.map((s) => (
                 <tr key={s.id} className="border-t">
                   <td className="px-3 py-2 font-mono text-xs">{s.ip}</td>

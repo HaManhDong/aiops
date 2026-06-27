@@ -16,7 +16,7 @@ def _load_prompt(filename: str, default: str = "") -> str:
     return p.read_text(encoding="utf-8") if p.exists() else default
 
 
-_DEFAULT_SYSTEM_VI = """Bạn là AI Assistant phân tích hệ thống IT cho đội vận hành VST.
+_DEFAULT_SYSTEM_VI = """Bạn là AI Assistant phân tích hệ thống IT cho đội vận hành.
 Trả lời bằng tiếng Việt, ngắn gọn, có cấu trúc rõ ràng.
 
 Nguyên tắc:
@@ -131,14 +131,22 @@ class AnswerSynthesizer:
                 ts = hit.get("@timestamp", hit.get("timestamp", ""))[:19]
                 log_field = hit.get("log", {})
                 if isinstance(log_field, dict):
-                    level = log_field.get("level", hit.get("level", "?"))
-                    msg = hit.get("message", log_field.get("message", ""))[:200]
+                    level = log_field.get("level", hit.get("level", hit.get("log_level", "?")))
+                    msg = (
+                        hit.get("message")
+                        or hit.get("Payload")
+                        or log_field.get("message", "")
+                    )[:200]
                 else:
-                    level = hit.get("level", "?")
-                    msg = str(log_field)[:200] if log_field else hit.get("message", "")[:200]
+                    level = hit.get("level", hit.get("log_level", "?"))
+                    msg = str(log_field)[:200] if log_field else (
+                        hit.get("message") or hit.get("Payload", "")
+                    )[:200]
                 if user_role == "manager":
                     msg = _strip_stacktrace(msg)
-                lines.append(f"  [{ts}] [{level}] {msg}")
+                source = hit.get("Logger") or hit.get("programname") or hit.get("Hostname")
+                source_text = f" [{source}]" if source else ""
+                lines.append(f"  [{ts}] [{level}]{source_text} {msg}")
 
         # Log stats
         log_stats = ctx.get("es_log_stats", {})
@@ -148,6 +156,16 @@ class AnswerSynthesizer:
                 "log_by_level: "
                 + ", ".join(f"{l['level']}={l['count']}" for l in by_level)
             )
+            if log_stats.get("by_logger"):
+                lines.append(
+                    "top_loggers: "
+                    + ", ".join(f"{l['logger']}={l['count']}" for l in log_stats["by_logger"][:5])
+                )
+            if log_stats.get("by_program"):
+                lines.append(
+                    "top_programs: "
+                    + ", ".join(f"{p['program']}={p['count']}" for p in log_stats["by_program"][:5])
+                )
 
         # Top errors
         top_errors = ctx.get("es_top_errors", {})
