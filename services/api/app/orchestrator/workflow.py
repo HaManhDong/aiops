@@ -237,6 +237,31 @@ async def handle_normal_query(
             severity=severity,
             description=full_answer[:500],
         )
+        if intent.app_id and ctx.last_error_messages:
+            try:
+                from app.services.incident_matcher import IncidentMatcher
+                matcher = IncidentMatcher(db)
+                similar = await matcher.find_similar(
+                    title=full_answer[:200],
+                    app_id=intent.app_id,
+                    limit=3,
+                    min_similarity=0.2,
+                )
+                if similar:
+                    yield sse.make_event("similar_incidents", {
+                        "incidents": [
+                            {
+                                "id": s.id,
+                                "title": s.title,
+                                "severity": s.severity,
+                                "similarity": s.similarity,
+                                "solution": s.solution,
+                            }
+                            for s in similar
+                        ]
+                    })
+            except Exception as e:
+                log.warning("similar_incidents_failed", error=str(e))
 
     # ── Persist ───────────────────────────────────────────────────────
     ctx.last_assistant_summary = full_answer[:200]

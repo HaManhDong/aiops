@@ -6,3 +6,4 @@ from app.models.audit import AuditLog  # noqa: F401
 from app.models.system_setting import SystemSetting  # noqa: F401
 from app.models.chat_session import ChatSession  # noqa: F401
 from app.models.chat_message import ChatMessage  # noqa: F401
+from app.models.incident import Incident, IncidentTimeline  # noqa: F401

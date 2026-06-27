@@ -157,6 +157,50 @@ CREATE TABLE IF NOT EXISTS collector_state (
     INDEX idx_app_file (app_id, file_path(255))
 ) ENGINE=InnoDB;
 
+-- ─── incidents ──────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS incidents (
+    id              VARCHAR(36)  PRIMARY KEY DEFAULT (UUID()),
+    app_id          VARCHAR(50)  NOT NULL,
+    title           VARCHAR(255) NOT NULL,
+    severity        ENUM('critical','high','medium','low') NOT NULL DEFAULT 'high',
+    status          ENUM('open','investigating','resolved','closed') NOT NULL DEFAULT 'open',
+    description     TEXT,
+    root_cause      TEXT,
+    solution        TEXT,
+    related_logs    JSON,
+    error_patterns  JSON,
+    affected_servers JSON,
+    source          ENUM('manual','chat_draft','prediction') NOT NULL DEFAULT 'manual',
+    chat_session_id VARCHAR(36),
+    created_by      VARCHAR(36),
+    assigned_to     VARCHAR(36),
+    resolved_by     VARCHAR(36),
+    solution_at     DATETIME(6),
+    solution_by     VARCHAR(36),
+    incident_time   DATETIME(6),
+    resolved_at     DATETIME(6),
+    created_at      DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at      DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    INDEX idx_app_status (app_id, status),
+    INDEX idx_created_at (created_at),
+    INDEX idx_severity (severity),
+    CONSTRAINT fk_inc_created_by FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+-- ─── incident_timeline ──────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS incident_timeline (
+    id           VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
+    incident_id  VARCHAR(36) NOT NULL,
+    user_id      VARCHAR(36),
+    action       VARCHAR(100) NOT NULL,
+    detail       TEXT,
+    metadata     JSON,
+    created_at   DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    INDEX idx_incident (incident_id),
+    CONSTRAINT fk_tl_incident FOREIGN KEY (incident_id) REFERENCES incidents(id) ON DELETE CASCADE,
+    CONSTRAINT fk_tl_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
 -- ─── Seed data ───────────────────────────────────────────────────────
 -- Admin user (password: changeme123)
 INSERT IGNORE INTO users (id, username, password_hash, full_name, role, is_active) VALUES
