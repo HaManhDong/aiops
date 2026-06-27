@@ -1,8 +1,8 @@
-# AIOps — Nền Tảng Vận Hành AI On-Premise
+# AIOps — Nền Tảng Vận Hành AI
 
-Nền tảng AIOps on-premise dành cho đội vận hành doanh nghiệp. Operator đặt câu hỏi bằng ngôn ngữ tự nhiên, hệ thống phân loại ý định, truy vấn log, metrics, incident, topology và tín hiệu dự đoán song song, rồi stream câu trả lời có dẫn chứng về — toàn bộ diễn ra trong mạng nội bộ, không có dữ liệu nào rời khỏi hạ tầng.
+Nền tảng AIOps dành cho đội vận hành doanh nghiệp. Operator đặt câu hỏi bằng ngôn ngữ tự nhiên, hệ thống phân loại ý định, truy vấn log, metrics, incident, topology và tín hiệu dự đoán song song, rồi stream câu trả lời có dẫn chứng về — trong vài giây.
 
-Được xây dựng cho doanh nghiệp Việt Nam có yêu cầu dữ liệu on-premise và LLM chạy local (Ollama / vLLM).
+Hỗ trợ triển khai linh hoạt: chạy hoàn toàn on-premise với Ollama/vLLM, hoặc kết nối OpenAI/Azure API với lớp lọc dữ liệu nhạy cảm tích hợp sẵn trước khi gửi ra ngoài.
 
 ## Vì Sao Cần AIOps
 
@@ -27,19 +27,41 @@ Senior engineer giải quyết được sự cố trong 10 phút vì đã gặp 
 
 **Giải pháp:** AIOps đặt câu hỏi ngược lại — điều gì xảy ra nếu hệ thống tự biết phải tra cứu ở đâu, tổng hợp ngữ cảnh nào, và trả lời trực tiếp?
 
-Operator gõ một câu hỏi tự nhiên bằng tiếng Việt. Hệ thống phân loại ý định, truy vấn ES + Prometheus + topology + lịch sử incident song song, tổng hợp câu trả lời có dẫn chứng và stream trực tiếp về trong vài giây. Nếu phát hiện bất thường, tự động soạn thảo incident để operator xác nhận một click. Nếu là sự cố đã gặp trước đây, hiển thị giải pháp từ lần trước.
-
-Không gửi dữ liệu ra ngoài. LLM chạy local. Mọi thứ ở trong mạng nội bộ.
+Operator gõ một câu hỏi tự nhiên. Hệ thống phân loại ý định, truy vấn ES + Prometheus + topology + lịch sử incident song song, tổng hợp câu trả lời có dẫn chứng và stream trực tiếp về trong vài giây. Nếu phát hiện bất thường, tự động soạn thảo incident để operator xác nhận một click. Nếu là sự cố đã gặp trước đây, hiển thị giải pháp từ lần trước.
 
 ## Điểm Nổi Bật Kỹ Thuật
 
 - **Pipeline đa agent** — 17 loại intent, fast-path dispatcher, vòng lặp agentic 4 pha của ExpertAgent (lập kế hoạch → thu thập đa nguồn → tổng hợp streaming → đồ thị giả thuyết nhân quả)
 - **SSE streaming thời gian thực** — giao thức sự kiện có kiểu (`step`, `es_query`, `server_table`, `log_stats`, `token`, `incident_draft`, `done`, `error`, `requires_input`) với RAF-batched token flushing trên frontend
 - **Lớp provider có thể thay thế** — đổi LLM backend (Ollama / vLLM / OpenAI / Azure), log storage (Elasticsearch / OpenSearch), metrics (Prometheus / Metricbeat) khi đang chạy, không cần restart
+- **Lọc dữ liệu nhạy cảm trước khi gửi LLM** — khi dùng OpenAI/Azure API, pipeline tự động loại bỏ IP nội bộ, hostname, credential pattern và PII khỏi ngữ cảnh trước khi gửi ra ngoài; chỉ gửi cấu trúc lỗi và pattern, không gửi giá trị thực
 - **Prediction Engine** — 7 bộ trích xuất tín hiệu độc lập trên APScheduler: dự báo dung lượng OLS, phát hiện lệch baseline EWMA, phát hiện tăng tốc, phát hiện lỗi mới (Jaccard), trôi dạt hành vi, tín hiệu tổ hợp, phát hiện lặp lại
 - **Máy trạng thái hội thoại** — ghi đồng thời Redis + fallback MariaDB, giao thức slash-command (`/yes`, `/no`, `/add-servers`, `/skip`, `/fix-query`), duy trì ngữ cảnh qua nhiều lần kết nối lại
 - **Full-stack hoàn chỉnh** — backend FastAPI async + frontend Next.js 15 với 20 app route, editor topology React Flow, chat thời gian thực với khôi phục lịch sử
 - **Không dùng vector database** — tìm kiếm full-text Elasticsearch + Jaccard similarity thay thế hoàn toàn embedding search; không cần hạ tầng bổ sung, kết quả xác định, truy vấn dưới 50ms trên lịch sử incident
+
+## Chế Độ Triển Khai
+
+AIOps hỗ trợ hai chế độ triển khai, chọn theo yêu cầu bảo mật và hạ tầng:
+
+| | Fully Local | Cloud LLM |
+|---|---|---|
+| LLM | Ollama / vLLM (chạy trong mạng nội bộ) | OpenAI / Azure OpenAI API |
+| Dữ liệu gửi ra ngoài | Không có | Chỉ cấu trúc lỗi đã lọc (xem bên dưới) |
+| Yêu cầu phần cứng | CPU 8 core+ hoặc GPU | Không cần GPU |
+| Độ trễ | Phụ thuộc phần cứng | Thấp, ổn định |
+| Chi phí | Chỉ điện + phần cứng | Pay-per-token |
+
+**Lớp lọc dữ liệu nhạy cảm (khi dùng Cloud LLM):**
+
+Trước khi gửi bất kỳ ngữ cảnh nào ra API bên ngoài, pipeline áp dụng các bước lọc theo thứ tự:
+
+1. **Loại bỏ định danh mạng** — IP nội bộ (RFC 1918: `10.x`, `172.16–31.x`, `192.168.x`), hostname, tên máy chủ được thay bằng placeholder (`[HOST]`, `[IP]`)
+2. **Loại bỏ credential pattern** — token, API key, password trong log được redact bằng regex trước khi đưa vào prompt
+3. **Chỉ giữ cấu trúc lỗi** — stack trace giữ nguyên class/method name (cần cho phân tích), nhưng tham số và giá trị runtime bị loại bỏ
+4. **Giới hạn số dòng log** — tối đa 50 dòng log đại diện được gửi, không gửi toàn bộ log thô
+
+Kết quả: LLM cloud nhận đủ ngữ cảnh để phân tích pattern lỗi, nhưng không nhận thông tin có thể định danh hạ tầng nội bộ.
 
 ## Tại Sao Không Dùng Vector Database
 
@@ -49,7 +71,7 @@ Vector database là câu trả lời mặc định cho tìm kiếm AI ngày nay 
 
 **Tìm kiếm incident tương tự không cần embedding.** `IncidentMatcher` dùng Jaccard similarity trên văn bản lỗi đã tokenize. Với văn bản vận hành — vốn bao gồm chủ yếu là mã lỗi, tên service, từ khóa stack trace — độ trùng lặp token là tín hiệu tốt hơn khoảng cách ngữ nghĩa. Incident "OOM killer terminated java process on erp-app-01" được khớp đúng với các incident tương tự trong quá khứ nhờ các token chung (`OOM`, `java`, `erp-app-01`), không phải nhờ độ gần ngữ nghĩa được học.
 
-**Chi phí hạ tầng là thực tế.** Một vector DB (Qdrant, Weaviate, Milvus) đòi hỏi: embedding model chạy 24/7, pipeline embedding cho mỗi log/incident mới, lưu trữ bổ sung, và thêm một dịch vụ cần vận hành. Trong môi trường on-premise doanh nghiệp, mỗi dịch vụ thêm vào là gánh nặng triển khai, giám sát và nâng cấp.
+**Chi phí hạ tầng là thực tế.** Một vector DB (Qdrant, Weaviate, Milvus) đòi hỏi: embedding model chạy 24/7, pipeline embedding cho mỗi log/incident mới, lưu trữ bổ sung, và thêm một dịch vụ cần vận hành. Mỗi dịch vụ thêm vào là gánh nặng triển khai, giám sát và nâng cấp.
 
 **So sánh:**
 
@@ -62,7 +84,7 @@ Vector database là câu trả lời mặc định cho tìm kiếm AI ngày nay 
 | Khả năng debug | Hộp đen (tại sao lại khớp?) | Minh bạch (thấy được giao token) |
 | Embedding drift | Phải re-index khi nâng cấp model | Không áp dụng |
 
-Kết quả: kho tri thức tăng trưởng và tìm kiếm được mà không cần hạ tầng embedding, độ tương đồng incident có thể giải thích được, và toàn bộ hệ thống chạy trên stack ES + MariaDB mà doanh nghiệp đã vận hành.
+Kết quả: kho tri thức tăng trưởng và tìm kiếm được mà không cần hạ tầng embedding, độ tương đồng incident có thể giải thích được, và toàn bộ hệ thống chạy trên stack ES + MariaDB mà đội vận hành đã quen thuộc.
 
 ## Những Gì Đã Được Triển Khai
 
@@ -72,6 +94,7 @@ Kết quả: kho tri thức tăng trưởng và tìm kiếm được mà không 
 | Pipeline chat ngôn ngữ tự nhiên | ✅ Hoàn thành | SSE streaming, bộ phân loại 17 intent, truy vấn ES/Prometheus song song, tổng hợp streaming, trạng thái hội thoại |
 | Lớp LLM provider | ✅ Hoàn thành | Ollama, OpenAI-compatible (vLLM), OpenAI, Azure OpenAI — đổi runtime qua Admin UI |
 | ExpertAgent (ROOT_CAUSE) | ✅ Hoàn thành | Vòng lặp agentic 4 pha: lập kế hoạch, thu thập đa nguồn, streaming, đồ thị giả thuyết nhân quả |
+| Lọc dữ liệu nhạy cảm | ✅ Hoàn thành | Redact IP, hostname, credential trước khi gửi Cloud LLM |
 | Quản lý datasource | ✅ Hoàn thành | Config MariaDB theo app, Redis cache (TTL 60s), mã hóa thông tin xác thực AES-256-GCM |
 | Provider log và metrics | ✅ Hoàn thành | Log Elasticsearch/OpenSearch, metrics Prometheus/Metricbeat — pluggable ABC |
 | Registry server | ✅ Hoàn thành | Tra cứu IP/hostname, tự phát hiện qua lệnh chat `/add-servers` |
@@ -101,12 +124,14 @@ flowchart TB
         Intent[Bộ phân loại Intent — 17 loại]
         Expert[ExpertAgent — vòng lặp 4 pha]
         Synth[Bộ tổng hợp câu trả lời]
+        Filter[Lọc dữ liệu nhạy cảm]
         Pred[Prediction Engine — 7 bộ trích xuất]
         Notif[Scheduler thông báo]
     end
 
     subgraph Providers ["Provider có thể thay thế"]
-        LLM[LLM: Ollama / vLLM / OpenAI]
+        LLM_Local[LLM Local: Ollama / vLLM]
+        LLM_Cloud[LLM Cloud: OpenAI / Azure]
         LogP[Log: ES / OpenSearch]
         MetP[Metrics: Prometheus / Metricbeat]
     end
@@ -121,8 +146,10 @@ flowchart TB
 
     Frontend --> Auth
     Auth --> Orch
-    Orch --> Intent --> Providers
-    Orch --> Expert --> Providers
+    Orch --> Intent --> LogP
+    Orch --> Expert --> LogP
+    Expert --> Filter --> LLM_Cloud
+    Expert --> LLM_Local
     Orch --> Synth --> Frontend
     Pred --> DB
     Notif --> DB
@@ -158,7 +185,7 @@ sequenceDiagram
     participant ES as Elasticsearch
     participant PM as Prometheus
 
-    U->>FE: Nhập câu hỏi (tiếng Việt)
+    U->>FE: Nhập câu hỏi
     FE->>API: POST /api/v1/chat (fetch + ReadableStream)
     API->>R: Tải ConversationContext (fallback: MariaDB)
     API->>LLM: Phân loại intent → JSON {intent, app_ids, time_range, keywords}
@@ -166,6 +193,7 @@ sequenceDiagram
     API-->>FE: SSE event: step "Đang truy vấn logs..."
     API->>ES: asyncio.gather — app_logs + syslog + log_stats + top_errors
     API->>PM: Batch PromQL — CPU/RAM/Disk/Net mỗi server
+    Note over API: Lọc dữ liệu nhạy cảm nếu dùng Cloud LLM
     API->>LLM: Tổng hợp câu trả lời từ bằng chứng (streaming, temp=0.1)
     LLM-->>API: Token stream
     API-->>FE: SSE events: token × N
@@ -261,7 +289,7 @@ Hai chế độ tìm kiếm chạy trên mỗi phân tích nguyên nhân gốc r
 
 | Chế độ | Thuật toán | Phạm vi | Ngưỡng |
 |---|---|---|---|
-| Khớp tiêu đề/mô tả | Jaccard similarity trên văn bản tokenize (loại bỏ stopword tiếng Việt) | 50 incident gần nhất cùng `app_id` | ≥ 0.25 |
+| Khớp tiêu đề/mô tả | Jaccard similarity trên văn bản tokenize | 50 incident gần nhất cùng `app_id` | ≥ 0.25 |
 | Khớp pattern lỗi | Jaccard trên trường `error_patterns` JSON so với top error message hiện tại | Chỉ incident đã giải quyết | ≥ 0.20 |
 
 Kết quả được xếp hạng theo điểm tương đồng và đưa vào ngữ cảnh LLM synthesizer — model được hướng dẫn tham chiếu `solution` từ incident tương tự khi có.
@@ -296,7 +324,7 @@ cp .env.example .env
 # 2. Khởi động stack dev (MariaDB + Redis + API + Worker + Ollama)
 docker compose -f infra/docker-compose.dev.yml up --build
 
-# 3. Pull model local
+# 3. Pull model local (bỏ qua nếu dùng OpenAI/Azure)
 docker exec ollama ollama pull qwen2.5:14b
 
 # 4. Kiểm tra
@@ -348,7 +376,7 @@ Các loại SSE event trả về:
 
 ## Mô Hình Bảo Mật
 
-- **On-premise theo thiết kế** — không có dữ liệu nào rời mạng nội bộ; LLM chạy local
+- **Triển khai linh hoạt** — chạy hoàn toàn local (không có gì rời mạng nội bộ) hoặc dùng Cloud LLM với lớp lọc dữ liệu nhạy cảm bắt buộc
 - **JWT HS256** xác thực, hết hạn sau 8h
 - **Cô lập theo app** — `allowed_apps` trong JWT token, áp dụng tại mọi truy vấn
 - **AES-256-GCM** mã hóa thông tin xác thực datasource được lưu (ES API key, Kibana key, LLM API key)
@@ -361,7 +389,7 @@ Các loại SSE event trả về:
 | Backend API | Python 3.11 + FastAPI (async) |
 | Database cấu hình | MariaDB 10.11 |
 | Session / Cache | Redis (hỗ trợ Sentinel) |
-| LLM | Ollama / vLLM (Qwen 2.5 14B mặc định) |
+| LLM | Ollama / vLLM / OpenAI / Azure OpenAI |
 | Lưu trữ log | Elasticsearch 8.9 / OpenSearch |
 | Metrics | Prometheus / Metricbeat |
 | ORM | SQLAlchemy 2.x async (asyncmy) |
