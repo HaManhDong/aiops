@@ -48,7 +48,7 @@ Senior engineer giải quyết được sự cố trong 10 phút vì đã gặp 
 "CPU của ERP đang bao nhiêu?": câu hỏi này được hỏi nhiều lần mỗi ngày, bởi nhiều người khác nhau, trả lời theo nhiều cách khác nhau. Đội vận hành giỏi nhất bị tiêu hao vào những tác vụ tra cứu thủ công thay vì tập trung cải thiện hệ thống.
 
 **Vấn đề 6: Hạ tầng CNTT chỉ có tăng, không bao giờ giảm.**
-Mọi doanh nghiệp, tổ chức, cơ quan đều đang vận hành hạ tầng CNTT — và quy mô chỉ tăng theo từng năm: thêm server, thêm service, thêm cloud, thêm ứng dụng. Các công ty cung cấp Managed Service Provider (MSP) đang quản lý hạ tầng cho hàng chục đến hàng trăm khách hàng cùng lúc với đội ngũ không tăng tương ứng. Nhu cầu về AIOps trong lĩnh vực managed service đã và đang bùng nổ — không phải xu hướng tương lai, mà là áp lực vận hành ngay hôm nay.
+Mọi doanh nghiệp, tổ chức, cơ quan đều đang vận hành hạ tầng CNTT và quy mô chỉ tăng theo từng năm: thêm server, thêm service, thêm cloud, thêm ứng dụng. Các công ty cung cấp Managed Service Provider (MSP) đang quản lý hạ tầng cho hàng chục đến hàng trăm khách hàng cùng lúc với đội ngũ không tăng tương ứng. Nhu cầu về AIOps trong lĩnh vực managed service đã và đang bùng nổ. Nhu cầu này không phải xu hướng tương lai, mà là áp lực vận hành ngay hôm nay.
 
 ---
 
