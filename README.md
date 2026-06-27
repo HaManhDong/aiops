@@ -68,54 +68,6 @@ Operator gõ một câu hỏi tự nhiên. Hệ thống phân loại ý định,
 
 ![Kiến trúc hệ thống](images/Architect.png)
 
-```mermaid
-flowchart TB
-    subgraph Frontend ["Frontend Next.js 15"]
-        UI[Chat UI + SSE reader]
-        Admin[Trang Admin]
-        Topo[Topology React Flow]
-    end
-
-    subgraph API ["Backend FastAPI (async)"]
-        Auth[JWT auth middleware]
-        Orch[SSE Orchestrator]
-        Intent[Bộ phân loại Intent: 17 loại]
-        Expert[ExpertAgent: vòng lặp 4 pha]
-        Synth[Bộ tổng hợp câu trả lời]
-        Filter[Lọc dữ liệu nhạy cảm]
-        Pred[Prediction Engine: 7 bộ trích xuất]
-        Notif[Scheduler thông báo]
-    end
-
-    subgraph Providers ["Provider có thể thay thế"]
-        LLM_Local[LLM Local: Ollama / vLLM]
-        LLM_Cloud[LLM Cloud: OpenAI / Azure]
-        LogP[Log: ES / OpenSearch]
-        MetP[Metrics: Prometheus / Metricbeat]
-    end
-
-    subgraph Storage ["Lưu trữ"]
-        DB[(MariaDB)]
-        Cache[(Redis)]
-        ES[(Elasticsearch)]
-    end
-
-    Worker[Worker Thu Thập Log TXT]
-
-    Frontend --> Auth
-    Auth --> Orch
-    Orch --> Intent --> LogP
-    Orch --> Expert --> LogP
-    Expert --> Filter --> LLM_Cloud
-    Expert --> LLM_Local
-    Orch --> Synth --> Frontend
-    Pred --> DB
-    Notif --> DB
-    Worker --> ES
-    Worker --> DB
-    API --> Storage
-```
-
 ### Các File Quan Trọng
 
 | Thành phần | Đường dẫn |
