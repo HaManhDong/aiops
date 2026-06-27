@@ -10,12 +10,12 @@ Hỗ trợ triển khai linh hoạt: chạy hoàn toàn on-premise với Ollama/
 
 - [Vì Sao Cần AIOps](#vì-sao-cần-aiops)
 - [Điểm Nổi Bật Kỹ Thuật](#điểm-nổi-bật-kỹ-thuật)
+- [Kiến Trúc](#kiến-trúc)
+  - [Các File Quan Trọng](#các-file-quan-trọng)
 - [Chế Độ Triển Khai](#chế-độ-triển-khai)
 - [Tại Sao Không Dùng Vector Database](#tại-sao-không-dùng-vector-database)
 - [Giao Diện](#giao-diện)
 - [Những Gì Đã Được Triển Khai](#những-gì-đã-được-triển-khai)
-- [Kiến Trúc](#kiến-trúc)
-  - [Các File Quan Trọng](#các-file-quan-trọng)
 - [Pipeline AI](#pipeline-ai)
 - [ExpertAgent: Phân Tích ROOT_CAUSE](#expertAgent-phân-tích-root_cause)
 - [Prediction Engine](#prediction-engine)
@@ -63,6 +63,73 @@ Operator gõ một câu hỏi tự nhiên. Hệ thống phân loại ý định,
 - **Prediction Engine**: 7 bộ trích xuất tín hiệu độc lập trên APScheduler: dự báo dung lượng OLS, phát hiện lệch baseline EWMA, phát hiện tăng tốc, phát hiện lỗi mới (Jaccard), trôi dạt hành vi, tín hiệu tổ hợp, phát hiện lặp lại
 - **Full-stack hoàn chỉnh**: backend FastAPI async + frontend Next.js 15 với 20 app route, editor topology React Flow, chat thời gian thực với khôi phục lịch sử
 - **Không dùng vector database**: tìm kiếm full-text Elasticsearch + Jaccard similarity thay thế hoàn toàn embedding search; không cần hạ tầng bổ sung, kết quả xác định, truy vấn dưới 50ms trên lịch sử incident
+
+## Kiến Trúc
+
+![Kiến trúc hệ thống](images/Architect.png)
+
+```mermaid
+flowchart TB
+    subgraph Frontend ["Frontend Next.js 15"]
+        UI[Chat UI + SSE reader]
+        Admin[Trang Admin]
+        Topo[Topology React Flow]
+    end
+
+    subgraph API ["Backend FastAPI (async)"]
+        Auth[JWT auth middleware]
+        Orch[SSE Orchestrator]
+        Intent[Bộ phân loại Intent: 17 loại]
+        Expert[ExpertAgent: vòng lặp 4 pha]
+        Synth[Bộ tổng hợp câu trả lời]
+        Filter[Lọc dữ liệu nhạy cảm]
+        Pred[Prediction Engine: 7 bộ trích xuất]
+        Notif[Scheduler thông báo]
+    end
+
+    subgraph Providers ["Provider có thể thay thế"]
+        LLM_Local[LLM Local: Ollama / vLLM]
+        LLM_Cloud[LLM Cloud: OpenAI / Azure]
+        LogP[Log: ES / OpenSearch]
+        MetP[Metrics: Prometheus / Metricbeat]
+    end
+
+    subgraph Storage ["Lưu trữ"]
+        DB[(MariaDB)]
+        Cache[(Redis)]
+        ES[(Elasticsearch)]
+    end
+
+    Worker[Worker Thu Thập Log TXT]
+
+    Frontend --> Auth
+    Auth --> Orch
+    Orch --> Intent --> LogP
+    Orch --> Expert --> LogP
+    Expert --> Filter --> LLM_Cloud
+    Expert --> LLM_Local
+    Orch --> Synth --> Frontend
+    Pred --> DB
+    Notif --> DB
+    Worker --> ES
+    Worker --> DB
+    API --> Storage
+```
+
+### Các File Quan Trọng
+
+| Thành phần | Đường dẫn |
+|---|---|
+| Điểm vào API | `services/api/app/main.py` |
+| Luồng chat SSE | `services/api/app/orchestrator/workflow.py` |
+| Bộ phân loại intent | `services/api/app/agents/intent.py` |
+| Bộ thực thi truy vấn | `services/api/app/agents/query_executor.py` |
+| ExpertAgent | `services/api/app/agents/expert_agent.py` |
+| Bộ tổng hợp câu trả lời | `services/api/app/agents/synthesizer.py` |
+| Prediction runner | `services/api/app/prediction/runner.py` |
+| Chat frontend | `services/frontend/src/components/chat/ChatWindow.tsx` |
+| Schema DB | `infra/init-db/01_schema.sql` |
+| Stack dev | `infra/docker-compose.dev.yml` |
 
 ## Chế Độ Triển Khai
 
@@ -143,73 +210,6 @@ Kết quả: kho tri thức tăng trưởng và tìm kiếm được mà không 
 | Worker thu thập log TXT | ✅ Hoàn thành | Theo dõi thư mục, tracking offset theo file, phát hiện rotation, bulk index ES |
 | Frontend Next.js 15 | ✅ Hoàn thành | 20 app route: chat SSE UI, dashboard, trang CRUD admin, trang prediction, editor topology React Flow |
 | Mô hình bảo mật | ✅ Hoàn thành | JWT HS256, mã hóa thông tin xác thực AES-256-GCM, cô lập theo app, audit log |
-
-## Kiến Trúc
-
-![Kiến trúc hệ thống](images/Architect.png)
-
-```mermaid
-flowchart TB
-    subgraph Frontend ["Frontend Next.js 15"]
-        UI[Chat UI + SSE reader]
-        Admin[Trang Admin]
-        Topo[Topology React Flow]
-    end
-
-    subgraph API ["Backend FastAPI (async)"]
-        Auth[JWT auth middleware]
-        Orch[SSE Orchestrator]
-        Intent[Bộ phân loại Intent: 17 loại]
-        Expert[ExpertAgent: vòng lặp 4 pha]
-        Synth[Bộ tổng hợp câu trả lời]
-        Filter[Lọc dữ liệu nhạy cảm]
-        Pred[Prediction Engine: 7 bộ trích xuất]
-        Notif[Scheduler thông báo]
-    end
-
-    subgraph Providers ["Provider có thể thay thế"]
-        LLM_Local[LLM Local: Ollama / vLLM]
-        LLM_Cloud[LLM Cloud: OpenAI / Azure]
-        LogP[Log: ES / OpenSearch]
-        MetP[Metrics: Prometheus / Metricbeat]
-    end
-
-    subgraph Storage ["Lưu trữ"]
-        DB[(MariaDB)]
-        Cache[(Redis)]
-        ES[(Elasticsearch)]
-    end
-
-    Worker[Worker Thu Thập Log TXT]
-
-    Frontend --> Auth
-    Auth --> Orch
-    Orch --> Intent --> LogP
-    Orch --> Expert --> LogP
-    Expert --> Filter --> LLM_Cloud
-    Expert --> LLM_Local
-    Orch --> Synth --> Frontend
-    Pred --> DB
-    Notif --> DB
-    Worker --> ES
-    Worker --> DB
-    API --> Storage
-```
-
-### Các File Quan Trọng
-
-| Thành phần | Đường dẫn |
-|---|---|
-| Điểm vào API | `services/api/app/main.py` |
-| Luồng chat SSE | `services/api/app/orchestrator/workflow.py` |
-| Bộ phân loại intent | `services/api/app/agents/intent.py` |
-| Bộ thực thi truy vấn | `services/api/app/agents/query_executor.py` |
-| ExpertAgent | `services/api/app/agents/expert_agent.py` |
-| Bộ tổng hợp câu trả lời | `services/api/app/agents/synthesizer.py` |
-| Prediction runner | `services/api/app/prediction/runner.py` |
-| Chat frontend | `services/frontend/src/components/chat/ChatWindow.tsx` |
-| Schema DB | `infra/init-db/01_schema.sql` |
-| Stack dev | `infra/docker-compose.dev.yml` |
 
 ## Pipeline AI
 
