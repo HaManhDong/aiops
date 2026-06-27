@@ -12,7 +12,7 @@ from app.database import init_db
 from app.middleware.error_handler import add_error_handlers
 from app.middleware.logging import RequestLoggingMiddleware, setup_logging
 from app.redis_client import init_redis
-from app.routers import audit_logs, auth, config_mgmt, health, servers, users, chat, admin_llm, incidents, topology
+from app.routers import audit_logs, auth, config_mgmt, health, servers, users, chat, admin_llm, incidents, topology, predictions
 
 log = structlog.get_logger()
 
@@ -23,8 +23,23 @@ async def lifespan(app: FastAPI):
     settings._validate_secrets()
     await init_db()
     init_redis()
+
+    from apscheduler.schedulers.asyncio import AsyncIOScheduler
+    from app.prediction.runner import run_prediction_scan_all
+
+    _scheduler = AsyncIOScheduler()
+    _scheduler.add_job(
+        run_prediction_scan_all,
+        "interval",
+        seconds=settings.prediction_scan_interval_s,
+        id="prediction_scan",
+        replace_existing=True,
+    )
+    _scheduler.start()
+    log.info("prediction_scheduler_started", interval_s=settings.prediction_scan_interval_s)
     log.info("startup_complete", env=settings.app_env, log_level=settings.log_level)
     yield
+    _scheduler.shutdown(wait=False)
     log.info("shutdown")
 
 
@@ -63,3 +78,4 @@ app.include_router(chat.router)
 app.include_router(admin_llm.router)
 app.include_router(incidents.router)
 app.include_router(topology.router)
+app.include_router(predictions.router)

@@ -255,6 +255,64 @@ CREATE TABLE IF NOT EXISTS topology_edges (
     CONSTRAINT fk_te_target FOREIGN KEY (target_node_id) REFERENCES topology_nodes(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
+-- ─── prediction_baselines ───────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS prediction_baselines (
+    id           VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
+    app_id       VARCHAR(50) NOT NULL,
+    metric_name  VARCHAR(100) NOT NULL,
+    server_ip    VARCHAR(45),
+    hour_of_day  TINYINT,
+    day_of_week  TINYINT,
+    mean_val     DECIMAL(12,4) NOT NULL DEFAULT 0,
+    std_val      DECIMAL(12,4) NOT NULL DEFAULT 0,
+    p95_val      DECIMAL(12,4),
+    sample_count INT          NOT NULL DEFAULT 0,
+    ewma_alpha   DECIMAL(5,4) NOT NULL DEFAULT 0.3,
+    computed_at  DATETIME(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    INDEX idx_app_metric (app_id, metric_name, server_ip)
+) ENGINE=InnoDB;
+
+-- ─── prediction_alerts ──────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS prediction_alerts (
+    id              VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
+    app_id          VARCHAR(50) NOT NULL,
+    server_ip       VARCHAR(45),
+    alert_type      VARCHAR(50) NOT NULL,
+    signal_group    VARCHAR(10) NOT NULL DEFAULT 'A',
+    severity        ENUM('critical','high','medium','low') NOT NULL DEFAULT 'medium',
+    status          ENUM('open','acknowledged','resolved','suppressed') NOT NULL DEFAULT 'open',
+    title           VARCHAR(255) NOT NULL,
+    explanation     TEXT,
+    metric_name     VARCHAR(100),
+    current_value   DECIMAL(12,4),
+    baseline_value  DECIMAL(12,4),
+    predicted_at    DATETIME(6),
+    confidence      DECIMAL(5,4) DEFAULT 0.5,
+    evidence        JSON,
+    blast_radius    JSON,
+    is_true_positive TINYINT(1),
+    resolved_at     DATETIME(6),
+    suppressed_until DATETIME(6),
+    created_at      DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at      DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    INDEX idx_app_status (app_id, status),
+    INDEX idx_created (created_at),
+    INDEX idx_server (server_ip)
+) ENGINE=InnoDB;
+
+-- ─── prediction_scans ───────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS prediction_scans (
+    id              VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
+    app_id          VARCHAR(50) NOT NULL,
+    scan_at         DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    duration_ms     INT,
+    alerts_created  INT NOT NULL DEFAULT 0,
+    signals_found   INT NOT NULL DEFAULT 0,
+    data_quality    DECIMAL(5,4),
+    error_message   TEXT,
+    INDEX idx_app_scan (app_id, scan_at)
+) ENGINE=InnoDB;
+
 -- ─── Seed data ───────────────────────────────────────────────────────
 -- Admin user (password: changeme123)
 INSERT IGNORE INTO users (id, username, password_hash, full_name, role, is_active) VALUES

@@ -78,6 +78,25 @@ class Settings(BaseSettings):
     worker_batch_size: int = 100
     worker_es_index_prefix: str = "vst-txt-logs"
 
+    # ─── Prediction Engine ───────────────────────────────────────────
+    prediction_scan_interval_s: int = 60
+    prediction_min_data_quality: float = 0.40
+    prediction_ewma_alpha: float = 0.3
+    prediction_zscore_warn: float = 2.5
+    prediction_zscore_crit: float = 4.0
+    prediction_capacity_r2_min: float = 0.70
+    prediction_capacity_days_crit: int = 1
+    prediction_capacity_days_high: int = 2
+    prediction_capacity_days_med: int = 3
+    prediction_acceleration_slope_warn: float = 0.20
+    prediction_novelty_jaccard_threshold: float = 0.30
+    prediction_recurrence_jaccard_threshold: float = 0.70
+    prediction_suppression_window_s: int = 900
+    prediction_composite_min_signals: int = 2
+    prediction_platt_min_outcomes: int = 100
+    prediction_lookback_hours: int = 24
+    prediction_prom_range_step: str = "5m"
+
     # ─── App ─────────────────────────────────────────────────────────
     app_env: str = "development"
     log_level: str = "INFO"
