@@ -6,6 +6,29 @@ Nền tảng AIOps dành cho đội vận hành doanh nghiệp. Operator đặt 
 
 Hỗ trợ triển khai linh hoạt: chạy hoàn toàn on-premise với Ollama/vLLM, hoặc kết nối public API như của OpenAI với lớp lọc dữ liệu nhạy cảm tích hợp sẵn trước khi gửi ra ngoài.
 
+## Mục Lục
+
+- [Vì Sao Cần AIOps](#vì-sao-cần-aiops)
+- [Điểm Nổi Bật Kỹ Thuật](#điểm-nổi-bật-kỹ-thuật)
+- [Chế Độ Triển Khai](#chế-độ-triển-khai)
+- [Tại Sao Không Dùng Vector Database](#tại-sao-không-dùng-vector-database)
+- [Giao Diện](#giao-diện)
+- [Những Gì Đã Được Triển Khai](#những-gì-đã-được-triển-khai)
+- [Kiến Trúc](#kiến-trúc)
+  - [Các File Quan Trọng](#các-file-quan-trọng)
+- [Pipeline AI](#pipeline-ai)
+- [ExpertAgent: Phân Tích ROOT_CAUSE](#expertAgent-phân-tích-root_cause)
+- [Prediction Engine](#prediction-engine)
+- [Đồ Thị Topology](#đồ-thị-topology)
+- [Kho Tri Thức: Lịch Sử Incident](#kho-tri-thức-lịch-sử-incident)
+- [Khởi Động Nhanh](#khởi-động-nhanh)
+- [Ví Dụ Phiên Chat](#ví-dụ-phiên-chat)
+- [Mô Hình Bảo Mật](#mô-hình-bảo-mật)
+- [Tech Stack](#tech-stack)
+- [Tài Liệu](#tài-liệu)
+- [17 Loại Intent](#17-loại-intent)
+- [Giấy Phép](#giấy-phép)
+
 ## Vì Sao Cần AIOps
 
 Đội vận hành đang dùng 5–7 công cụ riêng lẻ để xử lý mỗi sự cố: Kibana tra log, Grafana xem metrics, SSH vào server kiểm tra, email cũ tìm incident tương tự, wiki nội bộ tìm giải pháp. Không có một nơi nào tổng hợp tất cả ngữ cảnh đó lại thành một câu trả lời.
