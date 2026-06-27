@@ -158,6 +158,85 @@ Seven independent signal extractors run on APScheduler (adaptive 60s interval):
 
 Alerts include auto-generated human-readable explanations, blast-radius BFS from topology graph, and suppression logic to prevent alert storms.
 
+## Topology Graph
+
+AIOps maintains a versioned directed graph of the entire service landscape. Each node is a service, server, or database; each edge carries a `propagation_prob` (0.0–1.0) that encodes how likely a failure propagates from source to target.
+
+```
+topology_versions (1)
+    ├── topology_nodes  — node_key, label, node_type, health_status, ip, hostname
+    └── topology_edges  — source→target, relation_type, propagation_prob, weight
+```
+
+**How it's built:** Operators draw the graph in the React Flow editor (Admin → Topology). Nodes can be dragged and connected; dagre auto-layout arranges them left-to-right. The editor saves positions and edges back to the API (`PUT /api/v1/topology`). Multiple versions can coexist — only the active version is used at runtime.
+
+**How it's used at runtime:**
+
+| Consumer | What it does |
+|---|---|
+| ExpertAgent (ROOT_CAUSE) | BFS 2-hop subgraph expansion from the suspected fault node — feeds topology context to the LLM synthesizer |
+| Blast Radius calculator | Probabilistic BFS (max 3 hops), prunes paths where cumulative probability < 0.10 — used in prediction alerts |
+| Prediction alerts | Each alert includes the blast radius: downstream services ranked by cumulative impact probability |
+| `hypothesis_graph` SSE | ExpertAgent emits the impacted subgraph as an SSE event — rendered as interactive diagram in the frontend |
+
+**Blast radius algorithm:**
+```
+BFS from origin node:
+  for each outgoing edge:
+    new_prob = parent_prob × edge.propagation_prob
+    if new_prob ≥ 0.10 → add to impact list, continue BFS
+  max depth: 3 hops
+  output: impacted nodes sorted by cumulative_prob descending
+```
+
+**Edge relation types:** `calls`, `depends_on`, `hosts`, `replicates`, `load-balances` — stored in `relation_type`, visible as edge labels in the React Flow editor.
+
+## Knowledge Base — Incident History
+
+The knowledge base is the accumulated incident history stored in MariaDB. When the AI pipeline analyzes a new problem, it searches this history for similar past incidents and surfaces their solutions directly in the answer.
+
+**Schema (relevant fields):**
+
+```sql
+incidents (
+  id, app_id, title, description, severity, status,
+  root_cause,       -- analyst-written root cause
+  solution,         -- resolution steps
+  error_patterns,   -- JSON array of matched error signatures
+  timeline,         -- JSON array of timeline events
+  resolved_at
+)
+```
+
+**Similarity search — `IncidentMatcher`:**
+
+Two search modes run on every root-cause analysis:
+
+| Mode | Algorithm | Scope | Threshold |
+|---|---|---|---|
+| Title/description match | Jaccard similarity on tokenized text (Vietnamese stopwords stripped) | Last 50 incidents for the same `app_id` | ≥ 0.25 |
+| Error pattern match | Jaccard on `error_patterns` JSON field vs current top error messages | Resolved incidents only | ≥ 0.20 |
+
+Results are ranked by similarity score and injected into the LLM synthesizer context — the model is instructed to reference `solution` from similar incidents when available.
+
+**How the knowledge base grows automatically:**
+
+1. Chat analysis detects an anomaly → emits `incident_draft` SSE event
+2. Operator confirms → incident created with title, severity, error_patterns, affected servers
+3. During investigation, operator adds timeline events and root_cause via UI
+4. After resolution, `solution` field is filled → this becomes searchable institutional knowledge
+5. Prediction Engine's **recurrence extractor** scans new error patterns against `error_patterns` of all resolved incidents (Jaccard > 0.70 triggers a recurrence alert)
+
+**Incident lifecycle:**
+
+```
+auto-draft (chat)
+    → open (operator confirms)
+        → investigating (team working)
+            → resolved (root_cause + solution filled)
+                → knowledge base entry (searchable by future analyses)
+```
+
 ## Quick Start
 
 **Prerequisites:** Docker + Docker Compose, Ollama (or any OpenAI-compatible LLM endpoint)
