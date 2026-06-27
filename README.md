@@ -467,4 +467,4 @@ Bộ phân loại intent là cổng vào của mọi câu hỏi. Mỗi message t
 
 ## Giấy Phép
 
-MIT
+Apache License 2.0 — xem file [LICENSE](LICENSE).
