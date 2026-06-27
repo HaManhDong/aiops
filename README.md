@@ -130,6 +130,10 @@ Kết quả: kho tri thức tăng trưởng và tìm kiếm được mà không 
 |---|---|
 | ![Datasources](images/screenshots/datasources.png) | ![LLM Config](images/screenshots/llm-config.png) |
 
+| Quản lý Incident | |
+|---|---|
+| ![Incident](images/screenshots/incident.png) | |
+
 ## Những Gì Đã Được Triển Khai
 
 | Thành phần | Trạng thái | Ghi chú |
