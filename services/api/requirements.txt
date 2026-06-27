@@ -1,0 +1,16 @@
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+sqlalchemy==2.0.36
+asyncmy==0.2.10
+alembic==1.14.0
+redis[asyncio]==5.2.1
+httpx==0.28.1
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+bcrypt==3.2.2
+cryptography==43.0.3
+structlog==24.4.0
+pydantic==2.10.3
+pydantic-settings==2.6.1
+prometheus-fastapi-instrumentator==7.0.0
+python-multipart==0.0.9
