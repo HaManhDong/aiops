@@ -1,8 +1,8 @@
 # AIOps — Nền Tảng Vận Hành AI
 
-Nền tảng AIOps dành cho đội vận hành doanh nghiệp. Operator đặt câu hỏi bằng ngôn ngữ tự nhiên, hệ thống phân loại ý định, truy vấn log, metrics, incident, topology và tín hiệu dự đoán song song, rồi stream câu trả lời có dẫn chứng về — trong vài giây.
+Nền tảng AIOps dành cho đội vận hành doanh nghiệp. Operator đặt câu hỏi bằng ngôn ngữ tự nhiên, hệ thống phân loại ý định, truy vấn log, metrics, incident, topology và tín hiệu dự đoán song song, rồi stream câu trả lời có dẫn chứng về.
 
-Hỗ trợ triển khai linh hoạt: chạy hoàn toàn on-premise với Ollama/vLLM, hoặc kết nối OpenAI/Azure API với lớp lọc dữ liệu nhạy cảm tích hợp sẵn trước khi gửi ra ngoài.
+Hỗ trợ triển khai linh hoạt: chạy hoàn toàn on-premise với Ollama/vLLM, hoặc kết nối public API như của OpenAI với lớp lọc dữ liệu nhạy cảm tích hợp sẵn trước khi gửi ra ngoài.
 
 ## Vì Sao Cần AIOps
 
@@ -36,7 +36,6 @@ Operator gõ một câu hỏi tự nhiên. Hệ thống phân loại ý định,
 - **Lớp provider có thể thay thế** — đổi LLM backend (Ollama / vLLM / OpenAI / Azure), log storage (Elasticsearch / OpenSearch), metrics (Prometheus / Metricbeat) khi đang chạy, không cần restart
 - **Lọc dữ liệu nhạy cảm trước khi gửi LLM** — khi dùng OpenAI/Azure API, pipeline tự động loại bỏ IP nội bộ, hostname, credential pattern và PII khỏi ngữ cảnh trước khi gửi ra ngoài; chỉ gửi cấu trúc lỗi và pattern, không gửi giá trị thực
 - **Prediction Engine** — 7 bộ trích xuất tín hiệu độc lập trên APScheduler: dự báo dung lượng OLS, phát hiện lệch baseline EWMA, phát hiện tăng tốc, phát hiện lỗi mới (Jaccard), trôi dạt hành vi, tín hiệu tổ hợp, phát hiện lặp lại
-- **Máy trạng thái hội thoại** — ghi đồng thời Redis + fallback MariaDB, giao thức slash-command (`/yes`, `/no`, `/add-servers`, `/skip`, `/fix-query`), duy trì ngữ cảnh qua nhiều lần kết nối lại
 - **Full-stack hoàn chỉnh** — backend FastAPI async + frontend Next.js 15 với 20 app route, editor topology React Flow, chat thời gian thực với khôi phục lịch sử
 - **Không dùng vector database** — tìm kiếm full-text Elasticsearch + Jaccard similarity thay thế hoàn toàn embedding search; không cần hạ tầng bổ sung, kết quả xác định, truy vấn dưới 50ms trên lịch sử incident
 
@@ -85,6 +84,16 @@ Vector database là câu trả lời mặc định cho tìm kiếm AI ngày nay 
 | Embedding drift | Phải re-index khi nâng cấp model | Không áp dụng |
 
 Kết quả: kho tri thức tăng trưởng và tìm kiếm được mà không cần hạ tầng embedding, độ tương đồng incident có thể giải thích được, và toàn bộ hệ thống chạy trên stack ES + MariaDB mà đội vận hành đã quen thuộc.
+
+## Giao Diện
+
+| Chat — SSE streaming | Dashboard |
+|---|---|
+| ![Chat](images/screenshots/chat.png) | ![Dashboard](images/screenshots/dashboard.png) |
+
+| Cấu hình Datasource | Cấu hình LLM Provider |
+|---|---|
+| ![Datasources](images/screenshots/datasources.png) | ![LLM Config](images/screenshots/llm-config.png) |
 
 ## Những Gì Đã Được Triển Khai
 
