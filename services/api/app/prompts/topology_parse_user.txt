@@ -1,0 +1,20 @@
+Parse mô tả kiến trúc hệ thống {app_id} thành topology graph JSON:
+
+"{text}"
+
+Quy tắc:
+- "→" hoặc "->" hoặc "connects to" = edge relation "calls"
+- "depends on" = "depends_on"
+- Tên node: dùng snake_case lowercase (e.g. "web_lb", "api_server")
+- node type: service | database | queue | server | external | loadbalancer
+- propagation_prob: 0.9 cho critical path, 0.5 cho optional, 0.3 cho weak dependency
+
+Trả về JSON thuần (không markdown, không giải thích):
+{{
+  "nodes": [
+    {{"key": "node_key", "label": "Display Name", "type": "service"}}
+  ],
+  "edges": [
+    {{"source": "source_key", "target": "target_key", "relation": "calls", "propagation_prob": 0.8}}
+  ]
+}}

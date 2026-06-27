@@ -201,6 +201,60 @@ CREATE TABLE IF NOT EXISTS incident_timeline (
     CONSTRAINT fk_tl_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
+-- ─── topology_versions ──────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS topology_versions (
+    id          VARCHAR(36)  PRIMARY KEY DEFAULT (UUID()),
+    app_id      VARCHAR(50)  NOT NULL,
+    version_name VARCHAR(100) NOT NULL DEFAULT 'v1',
+    description TEXT,
+    is_active   TINYINT(1)   NOT NULL DEFAULT 1,
+    created_by  VARCHAR(36),
+    created_at  DATETIME(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    INDEX idx_app_active (app_id, is_active),
+    CONSTRAINT fk_tv_user FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+-- ─── topology_nodes ─────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS topology_nodes (
+    id            VARCHAR(36)  PRIMARY KEY DEFAULT (UUID()),
+    version_id    VARCHAR(36)  NOT NULL,
+    app_id        VARCHAR(50)  NOT NULL,
+    node_key      VARCHAR(100) NOT NULL,
+    label         VARCHAR(200) NOT NULL,
+    node_type     ENUM('service','database','queue','server','external','loadbalancer') NOT NULL DEFAULT 'service',
+    ip            VARCHAR(45),
+    hostname      VARCHAR(255),
+    health_status ENUM('healthy','degraded','down','unknown') NOT NULL DEFAULT 'unknown',
+    position_x    FLOAT DEFAULT 0,
+    position_y    FLOAT DEFAULT 0,
+    metadata      JSON,
+    created_at    DATETIME(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at    DATETIME(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    UNIQUE KEY uq_version_key (version_id, node_key),
+    INDEX idx_app (app_id),
+    CONSTRAINT fk_tn_version FOREIGN KEY (version_id) REFERENCES topology_versions(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- ─── topology_edges ─────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS topology_edges (
+    id               VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
+    version_id       VARCHAR(36) NOT NULL,
+    app_id           VARCHAR(50) NOT NULL,
+    source_node_id   VARCHAR(36) NOT NULL,
+    target_node_id   VARCHAR(36) NOT NULL,
+    relation_type    ENUM('calls','depends_on','replicates','proxies','feeds','monitors') NOT NULL DEFAULT 'calls',
+    propagation_prob FLOAT       NOT NULL DEFAULT 0.5,
+    weight           FLOAT       NOT NULL DEFAULT 1.0,
+    label            VARCHAR(100),
+    created_at       DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    UNIQUE KEY uq_edge (version_id, source_node_id, target_node_id, relation_type),
+    INDEX idx_source (source_node_id),
+    INDEX idx_target (target_node_id),
+    CONSTRAINT fk_te_version FOREIGN KEY (version_id) REFERENCES topology_versions(id) ON DELETE CASCADE,
+    CONSTRAINT fk_te_source FOREIGN KEY (source_node_id) REFERENCES topology_nodes(id) ON DELETE CASCADE,
+    CONSTRAINT fk_te_target FOREIGN KEY (target_node_id) REFERENCES topology_nodes(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
 -- ─── Seed data ───────────────────────────────────────────────────────
 -- Admin user (password: changeme123)
 INSERT IGNORE INTO users (id, username, password_hash, full_name, role, is_active) VALUES

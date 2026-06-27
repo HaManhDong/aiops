@@ -12,7 +12,7 @@ from app.database import init_db
 from app.middleware.error_handler import add_error_handlers
 from app.middleware.logging import RequestLoggingMiddleware, setup_logging
 from app.redis_client import init_redis
-from app.routers import audit_logs, auth, config_mgmt, health, servers, users, chat, admin_llm, incidents
+from app.routers import audit_logs, auth, config_mgmt, health, servers, users, chat, admin_llm, incidents, topology
 
 log = structlog.get_logger()
 
@@ -62,3 +62,4 @@ app.include_router(audit_logs.router)
 app.include_router(chat.router)
 app.include_router(admin_llm.router)
 app.include_router(incidents.router)
+app.include_router(topology.router)
