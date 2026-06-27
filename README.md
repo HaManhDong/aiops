@@ -1,5 +1,7 @@
 # AIOps: Nền Tảng Vận Hành AI
 
+*Tiếng Việt | [English](README.en.md)*
+
 Nền tảng AIOps dành cho đội vận hành doanh nghiệp. Operator đặt câu hỏi bằng ngôn ngữ tự nhiên, hệ thống phân loại ý định, truy vấn log, metrics, incident, topology và tín hiệu dự đoán song song, rồi stream câu trả lời có dẫn chứng về.
 
 Hỗ trợ triển khai linh hoạt: chạy hoàn toàn on-premise với Ollama/vLLM, hoặc kết nối public API như của OpenAI với lớp lọc dữ liệu nhạy cảm tích hợp sẵn trước khi gửi ra ngoài.
