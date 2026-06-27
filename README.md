@@ -89,9 +89,13 @@ Kết quả: kho tri thức tăng trưởng và tìm kiếm được mà không 
 
 ## Giao Diện
 
-| Chat: SSE streaming | Dashboard |
+| Chat: SSE streaming | Chat: phân tích chuyên sâu |
 |---|---|
-| ![Chat](images/screenshots/chat.png) | ![Dashboard](images/screenshots/dashboard.png) |
+| ![Chat](images/screenshots/chat.png) | ![Chat 2](images/screenshots/chat-2.png) |
+
+| Chat: đồ thị giả thuyết nhân quả | Dashboard |
+|---|---|
+| ![Chat 3](images/screenshots/chat-3.png) | ![Dashboard](images/screenshots/dashboard.png) |
 
 | Cấu hình Datasource | Cấu hình LLM Provider |
 |---|---|

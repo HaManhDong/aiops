@@ -90,9 +90,13 @@ Result: the knowledge base grows and becomes searchable with zero embedding infr
 
 ## Screenshots
 
-| Chat SSE streaming | Dashboard |
+| Chat: SSE streaming | Chat: deep analysis |
 |---|---|
-| ![Chat](images/screenshots/chat.png) | ![Dashboard](images/screenshots/dashboard.png) |
+| ![Chat](images/screenshots/chat.png) | ![Chat 2](images/screenshots/chat-2.png) |
+
+| Chat: causal hypothesis graph | Dashboard |
+|---|---|
+| ![Chat 3](images/screenshots/chat-3.png) | ![Dashboard](images/screenshots/dashboard.png) |
 
 | Datasource Configuration | LLM Provider Configuration |
 |---|---|
