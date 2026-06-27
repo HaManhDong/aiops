@@ -38,6 +38,8 @@ Enterprise operators investigate incidents by switching between Kibana, Grafana,
 
 ## Architecture
 
+![System Architecture](images/Architect.png)
+
 ```mermaid
 flowchart TB
     subgraph Frontend ["Next.js 15 Frontend"]
