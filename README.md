@@ -11,7 +11,6 @@ Hỗ trợ triển khai linh hoạt: chạy hoàn toàn on-premise với Ollama/
 - [Vì Sao Cần AIOps](#vì-sao-cần-aiops)
 - [Điểm Nổi Bật Kỹ Thuật](#điểm-nổi-bật-kỹ-thuật)
 - [Kiến Trúc](#kiến-trúc)
-  - [Các File Quan Trọng](#các-file-quan-trọng)
 - [Chế Độ Triển Khai](#chế-độ-triển-khai)
 - [Tại Sao Không Dùng Vector Database](#tại-sao-không-dùng-vector-database)
 - [Giao Diện](#giao-diện)
@@ -67,21 +66,6 @@ Operator gõ một câu hỏi tự nhiên. Hệ thống phân loại ý định,
 ## Kiến Trúc
 
 ![Kiến trúc hệ thống](images/Architect.png)
-
-### Các File Quan Trọng
-
-| Thành phần | Đường dẫn |
-|---|---|
-| Điểm vào API | `services/api/app/main.py` |
-| Luồng chat SSE | `services/api/app/orchestrator/workflow.py` |
-| Bộ phân loại intent | `services/api/app/agents/intent.py` |
-| Bộ thực thi truy vấn | `services/api/app/agents/query_executor.py` |
-| ExpertAgent | `services/api/app/agents/expert_agent.py` |
-| Bộ tổng hợp câu trả lời | `services/api/app/agents/synthesizer.py` |
-| Prediction runner | `services/api/app/prediction/runner.py` |
-| Chat frontend | `services/frontend/src/components/chat/ChatWindow.tsx` |
-| Schema DB | `infra/init-db/01_schema.sql` |
-| Stack dev | `infra/docker-compose.dev.yml` |
 
 ## Chế Độ Triển Khai
 
