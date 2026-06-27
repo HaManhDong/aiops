@@ -1,129 +1,123 @@
-# AIOps — On-Premise AI Operations Platform
+# AIOps — Nền Tảng Vận Hành AI On-Premise
 
-An on-premise AIOps platform for enterprise operations teams. Operators ask questions in natural language, the system classifies intent, queries logs, metrics, incidents, topology, and prediction signals in parallel, then streams a grounded answer — all without sending operational data outside the internal network.
+Nền tảng AIOps on-premise dành cho đội vận hành doanh nghiệp. Operator đặt câu hỏi bằng ngôn ngữ tự nhiên, hệ thống phân loại ý định, truy vấn log, metrics, incident, topology và tín hiệu dự đoán song song, rồi stream câu trả lời có dẫn chứng về — toàn bộ diễn ra trong mạng nội bộ, không có dữ liệu nào rời khỏi hạ tầng.
 
-Built for Vietnamese enterprise environments where operational data must stay on-premise and LLMs run locally (Ollama / vLLM).
+Được xây dựng cho doanh nghiệp Việt Nam có yêu cầu dữ liệu on-premise và LLM chạy local (Ollama / vLLM).
 
-## Why This Exists
+## Vì Sao Cần AIOps
 
-Hệ thống production sập lúc 2 giờ sáng. On-call engineer mở Kibana, Grafana, SSH vào từng server, lục lại email cũ tìm incident tương tự — và làm việc này mỗi lần sự cố xảy ra, lặp đi lặp lại trong nhiều năm.
-
-Đây không phải vấn đề kỹ thuật. Đây là vấn đề của con người.
-
----
+Đội vận hành đang dùng 5–7 công cụ riêng lẻ để xử lý mỗi sự cố: Kibana tra log, Grafana xem metrics, SSH vào server kiểm tra, email cũ tìm incident tương tự, wiki nội bộ tìm giải pháp. Không có một nơi nào tổng hợp tất cả ngữ cảnh đó lại thành một câu trả lời.
 
 **Vấn đề 1 — Thời gian xử lý sự cố kéo dài.**
-MTTR (Mean Time To Resolve) của hầu hết doanh nghiệp Việt Nam dao động từ 45 phút đến vài giờ, không phải vì thiếu tool mà vì thiếu ngữ cảnh. Engineer phải tự tổng hợp dữ liệu từ 5–7 nguồn khác nhau rồi mới bắt đầu suy luận. Mỗi phút downtime là doanh thu, là uy tín, là áp lực.
+MTTR của hầu hết doanh nghiệp dao động từ 45 phút đến vài giờ, không phải vì thiếu tool mà vì thiếu ngữ cảnh. Engineer phải tự tổng hợp dữ liệu từ nhiều nguồn rồi mới bắt đầu suy luận. Mỗi phút downtime là doanh thu, uy tín và áp lực.
 
-**Vấn đề 2 — Cảnh báo rác.**
-Hàng nghìn alert mỗi ngày — CPU spike, disk warning, connection pool — nhưng 80% là nhiễu. Đội vận hành mất khả năng phân biệt tín hiệu thật với tín hiệu giả. Alert fatigue dẫn đến bỏ qua cảnh báo, và rồi một ngày cảnh báo thật bị bỏ qua theo.
+**Vấn đề 2 — Cảnh báo rác gây mất tập trung.**
+Hàng nghìn alert mỗi ngày — CPU spike, disk warning, connection pool — nhưng phần lớn là nhiễu. Đội vận hành dần mất khả năng phân biệt tín hiệu thật với tín hiệu giả. Alert fatigue dẫn đến bỏ qua cảnh báo, và rồi đến ngày cảnh báo thật cũng bị bỏ qua theo.
 
 **Vấn đề 3 — Log và metrics bị lãng phí.**
-Terabyte log được ghi mỗi ngày. Nhưng 99% chưa bao giờ được đọc. Elasticsearch đang lưu toàn bộ ngữ cảnh của mỗi sự cố — error pattern, HTTP trace, slow query — nhưng không ai có thời gian đào bới nó đủ sâu trong lúc hệ thống đang cháy.
+Terabyte log được ghi mỗi ngày nhưng 99% chưa bao giờ được đọc. Elasticsearch đang lưu toàn bộ ngữ cảnh của mỗi sự cố — error pattern, HTTP trace, slow query — nhưng không ai có thời gian đào bới đủ sâu trong lúc hệ thống đang có vấn đề.
 
-**Vấn đề 4 — Thiếu kho tri thức.**
-Senior engineer giải quyết được sự cố trong 10 phút vì họ đã gặp cái này 3 lần trước. Junior engineer mất 3 tiếng vì không biết điều đó. Nhưng khi senior nghỉ việc, kiến thức đó biến mất cùng họ — không được ghi lại, không được chuyển giao.
+**Vấn đề 4 — Thiếu kho tri thức tổ chức.**
+Senior engineer giải quyết được sự cố trong 10 phút vì đã gặp trường hợp tương tự nhiều lần. Junior mất 3 tiếng vì không có thông tin đó. Khi senior nghỉ việc, kiến thức biến mất cùng họ — không được ghi lại, không được chuyển giao.
 
-**Vấn đề 5 — Áp lực nhân sự từ công việc lặp lại.**
-"Check CPU của ERP đang bao nhiêu?" — câu hỏi này được hỏi 20 lần mỗi ngày, bởi 5 người khác nhau, trả lời theo 5 cách khác nhau. Đội vận hành giỏi nhất bị mắc kẹt trong những tác vụ lặp lại thay vì tập trung vào cải thiện hệ thống.
+**Vấn đề 5 — Nhân sự giỏi bị mắc kẹt trong tác vụ lặp lại.**
+"CPU của ERP đang bao nhiêu?" — câu hỏi này được hỏi nhiều lần mỗi ngày, bởi nhiều người khác nhau, trả lời theo nhiều cách khác nhau. Đội vận hành giỏi nhất bị tiêu hao vào những tác vụ tra cứu thủ công thay vì tập trung cải thiện hệ thống.
 
 ---
 
-**Giải pháp:** AIOps.
+**Giải pháp:** AIOps đặt câu hỏi ngược lại — điều gì xảy ra nếu hệ thống tự biết phải tra cứu ở đâu, tổng hợp ngữ cảnh nào, và trả lời trực tiếp?
 
-Thay vì yêu cầu engineer học thêm tool, chúng tôi đặt câu hỏi ngược lại: **điều gì xảy ra nếu hệ thống tự biết phải tra cứu ở đâu, tổng hợp ngữ cảnh nào, và trả lời trực tiếp bằng tiếng Việt?**
-
-Operator gõ một câu hỏi tự nhiên. Hệ thống phân loại ý định, truy vấn ES + Prometheus + topology + lịch sử incident song song, tổng hợp câu trả lời có dẫn chứng và stream trực tiếp về — trong vài giây. Nếu phát hiện bất thường, tự động soạn thảo incident để operator xác nhận một click. Nếu là sự cố đã gặp trước đây, hiển thị giải pháp từ lần trước.
+Operator gõ một câu hỏi tự nhiên bằng tiếng Việt. Hệ thống phân loại ý định, truy vấn ES + Prometheus + topology + lịch sử incident song song, tổng hợp câu trả lời có dẫn chứng và stream trực tiếp về trong vài giây. Nếu phát hiện bất thường, tự động soạn thảo incident để operator xác nhận một click. Nếu là sự cố đã gặp trước đây, hiển thị giải pháp từ lần trước.
 
 Không gửi dữ liệu ra ngoài. LLM chạy local. Mọi thứ ở trong mạng nội bộ.
 
-## Technical Highlights
+## Điểm Nổi Bật Kỹ Thuật
 
-- **Multi-agent pipeline** — 17 intent types, dedicated fast-path dispatcher, ExpertAgent 4-phase agentic loop (plan → multi-source fetch → streaming synthesis → causal hypothesis graph)
-- **Real-time SSE streaming** — typed event protocol (`step`, `es_query`, `server_table`, `log_stats`, `token`, `incident_draft`, `done`, `error`, `requires_input`) with RAF-batched token flushing on the frontend
-- **Pluggable provider layer** — swap LLM backend (Ollama / vLLM / OpenAI / Azure), log storage (Elasticsearch / OpenSearch), and metrics (Prometheus / Metricbeat) at runtime without restart
-- **Prediction Engine** — 7 independent signal extractors on APScheduler: OLS capacity forecasting, EWMA baseline deviation, acceleration detection, novel error detection (Jaccard), behavioral drift, composite signals, recurrence matching
-- **Conversation state machine** — Redis write-through with MariaDB fallback, slash-command protocol (`/yes`, `/no`, `/add-servers`, `/skip`, `/fix-query`), multi-turn context across reconnects
-- **Full-stack implementation** — FastAPI async backend + Next.js 15 frontend with 20 app routes, React Flow topology editor, real-time chat with history restore
-- **No vector database** — Elasticsearch full-text search + Jaccard similarity replaces embedding search entirely; zero extra infrastructure, deterministic results, sub-50ms similarity lookups against incident history
+- **Pipeline đa agent** — 17 loại intent, fast-path dispatcher, vòng lặp agentic 4 pha của ExpertAgent (lập kế hoạch → thu thập đa nguồn → tổng hợp streaming → đồ thị giả thuyết nhân quả)
+- **SSE streaming thời gian thực** — giao thức sự kiện có kiểu (`step`, `es_query`, `server_table`, `log_stats`, `token`, `incident_draft`, `done`, `error`, `requires_input`) với RAF-batched token flushing trên frontend
+- **Lớp provider có thể thay thế** — đổi LLM backend (Ollama / vLLM / OpenAI / Azure), log storage (Elasticsearch / OpenSearch), metrics (Prometheus / Metricbeat) khi đang chạy, không cần restart
+- **Prediction Engine** — 7 bộ trích xuất tín hiệu độc lập trên APScheduler: dự báo dung lượng OLS, phát hiện lệch baseline EWMA, phát hiện tăng tốc, phát hiện lỗi mới (Jaccard), trôi dạt hành vi, tín hiệu tổ hợp, phát hiện lặp lại
+- **Máy trạng thái hội thoại** — ghi đồng thời Redis + fallback MariaDB, giao thức slash-command (`/yes`, `/no`, `/add-servers`, `/skip`, `/fix-query`), duy trì ngữ cảnh qua nhiều lần kết nối lại
+- **Full-stack hoàn chỉnh** — backend FastAPI async + frontend Next.js 15 với 20 app route, editor topology React Flow, chat thời gian thực với khôi phục lịch sử
+- **Không dùng vector database** — tìm kiếm full-text Elasticsearch + Jaccard similarity thay thế hoàn toàn embedding search; không cần hạ tầng bổ sung, kết quả xác định, truy vấn dưới 50ms trên lịch sử incident
 
-## Why No Vector Database
+## Tại Sao Không Dùng Vector Database
 
-Vector databases are the default answer for AI-powered search today — but for operational log systems, they introduce complexity without proportional benefit.
+Vector database là câu trả lời mặc định cho tìm kiếm AI ngày nay — nhưng với hệ thống log vận hành, chúng thêm độ phức tạp mà không mang lại lợi ích tương xứng.
 
-**Log data is already structured.** Elasticsearch stores log events with `level`, `timestamp`, `host`, `service`, `message` — not unstructured prose. Querying "ERROR logs from ERP in the last 2 hours" is a structured filter + aggregation, not a semantic similarity problem. ES already excels at this.
+**Dữ liệu log đã có cấu trúc.** Elasticsearch lưu log event với `level`, `timestamp`, `host`, `service`, `message` — không phải văn xuôi tự do. Truy vấn "log ERROR của ERP trong 2 giờ qua" là bài toán filter + aggregation có cấu trúc, không phải bài toán tương đồng ngữ nghĩa. ES đã làm tốt điều này.
 
-**Incident similarity doesn't need embedding models.** The `IncidentMatcher` uses Jaccard similarity on tokenized error text. For operational text — which is dominated by error codes, service names, and stack trace keywords — token overlap is a better signal than semantic distance. An incident titled "OOM killer terminated java process on erp-app-01" is correctly matched to similar past incidents by shared tokens (`OOM`, `java`, `erp-app-01`), not by learned semantic proximity.
+**Tìm kiếm incident tương tự không cần embedding.** `IncidentMatcher` dùng Jaccard similarity trên văn bản lỗi đã tokenize. Với văn bản vận hành — vốn bao gồm chủ yếu là mã lỗi, tên service, từ khóa stack trace — độ trùng lặp token là tín hiệu tốt hơn khoảng cách ngữ nghĩa. Incident "OOM killer terminated java process on erp-app-01" được khớp đúng với các incident tương tự trong quá khứ nhờ các token chung (`OOM`, `java`, `erp-app-01`), không phải nhờ độ gần ngữ nghĩa được học.
 
-**The infrastructure cost is real.** A vector DB (Qdrant, Weaviate, Milvus) requires: an embedding model running 24/7, an embedding pipeline for every new log/incident, additional storage, and another service to operate. In an on-premise enterprise environment, each added service is a deployment, monitoring, and upgrade burden.
+**Chi phí hạ tầng là thực tế.** Một vector DB (Qdrant, Weaviate, Milvus) đòi hỏi: embedding model chạy 24/7, pipeline embedding cho mỗi log/incident mới, lưu trữ bổ sung, và thêm một dịch vụ cần vận hành. Trong môi trường on-premise doanh nghiệp, mỗi dịch vụ thêm vào là gánh nặng triển khai, giám sát và nâng cấp.
 
-**Comparison:**
+**So sánh:**
 
-| | Vector DB approach | This system |
+| | Phương án Vector DB | Hệ thống này |
 |---|---|---|
-| Infrastructure | ES + embedding model + vector DB | ES only (already exists) |
-| Incident search latency | 200–500ms (embed query + ANN search) | < 50ms (Jaccard on last 50 rows) |
-| Log querying | Semantic → ES hybrid | Pure ES DSL (aggregations, filters) |
-| Determinism | Non-deterministic (model version dependent) | Deterministic (same tokens = same result) |
-| Debuggability | Black box (why did this match?) | Transparent (token intersection visible) |
-| Embedding drift | Re-index on model upgrade | N/A |
+| Hạ tầng | ES + embedding model + vector DB | Chỉ ES (đã có sẵn) |
+| Độ trễ tìm kiếm incident | 200–500ms (embed query + ANN search) | < 50ms (Jaccard trên 50 dòng gần nhất) |
+| Truy vấn log | Semantic → ES hybrid | Thuần ES DSL (aggregation, filter) |
+| Tính xác định | Không xác định (phụ thuộc phiên bản model) | Xác định (cùng token = cùng kết quả) |
+| Khả năng debug | Hộp đen (tại sao lại khớp?) | Minh bạch (thấy được giao token) |
+| Embedding drift | Phải re-index khi nâng cấp model | Không áp dụng |
 
-The result: the knowledge base grows and becomes searchable with zero embedding infrastructure, incident similarity is explainable, and the entire system runs on the ES + MariaDB stack the enterprise already operates.
+Kết quả: kho tri thức tăng trưởng và tìm kiếm được mà không cần hạ tầng embedding, độ tương đồng incident có thể giải thích được, và toàn bộ hệ thống chạy trên stack ES + MariaDB mà doanh nghiệp đã vận hành.
 
-## What Is Implemented
+## Những Gì Đã Được Triển Khai
 
-| Area | Status | Notes |
+| Thành phần | Trạng thái | Ghi chú |
 |---|---|---|
-| FastAPI async backend | ✅ Complete | Auth, admin, chat, incident, topology, prediction, notification routes |
-| Natural-language chat pipeline | ✅ Complete | SSE streaming, 17-intent LLM classifier, parallel ES/Prometheus query, streaming synthesizer, conversation state |
-| LLM provider layer | ✅ Complete | Ollama, OpenAI-compatible (vLLM), OpenAI, Azure OpenAI — runtime switch via admin UI |
-| ExpertAgent (ROOT_CAUSE) | ✅ Complete | 4-phase agentic loop: plan, multi-source fetch, stream, causal hypothesis graph |
-| Datasource management | ✅ Complete | Per-app MariaDB config, Redis cache (TTL 60s), AES-256-GCM encrypted credentials |
-| Log and metric providers | ✅ Complete | Elasticsearch/OpenSearch log storage, Prometheus/Metricbeat metrics — pluggable ABC |
-| Server registry | ✅ Complete | IP/hostname lookup, auto-discovery via chat `/add-servers` command |
-| Incident management | ✅ Complete | CRUD, timeline, similar incident matching, auto-draft from chat analysis |
-| Topology graph | ✅ Complete | Versioned nodes/edges, BFS graph expansion, blast-radius calculation |
-| Prediction engine | ✅ Complete | 7 signal extractors, adaptive APScheduler, suppression, auto-correlation, explanation |
-| Notifications | ✅ Complete | Email (SMTP) + Telegram channels, APScheduler cron, daily Markdown report |
-| TXT log collector worker | ✅ Complete | Directory watcher, per-file offset tracking, rotation detection, bulk ES indexing |
-| Next.js 15 frontend | ✅ Complete | 20 app routes: chat SSE UI, dashboard, admin CRUD pages, prediction pages, React Flow topology editor |
-| Security model | ✅ Complete | JWT HS256, AES-256-GCM credentials, app-level data isolation, audit log |
+| Backend FastAPI async | ✅ Hoàn thành | Auth, admin, chat, incident, topology, prediction, notification routes |
+| Pipeline chat ngôn ngữ tự nhiên | ✅ Hoàn thành | SSE streaming, bộ phân loại 17 intent, truy vấn ES/Prometheus song song, tổng hợp streaming, trạng thái hội thoại |
+| Lớp LLM provider | ✅ Hoàn thành | Ollama, OpenAI-compatible (vLLM), OpenAI, Azure OpenAI — đổi runtime qua Admin UI |
+| ExpertAgent (ROOT_CAUSE) | ✅ Hoàn thành | Vòng lặp agentic 4 pha: lập kế hoạch, thu thập đa nguồn, streaming, đồ thị giả thuyết nhân quả |
+| Quản lý datasource | ✅ Hoàn thành | Config MariaDB theo app, Redis cache (TTL 60s), mã hóa thông tin xác thực AES-256-GCM |
+| Provider log và metrics | ✅ Hoàn thành | Log Elasticsearch/OpenSearch, metrics Prometheus/Metricbeat — pluggable ABC |
+| Registry server | ✅ Hoàn thành | Tra cứu IP/hostname, tự phát hiện qua lệnh chat `/add-servers` |
+| Quản lý incident | ✅ Hoàn thành | CRUD, timeline, khớp incident tương tự, tự soạn thảo từ phân tích chat |
+| Đồ thị topology | ✅ Hoàn thành | Nodes/edges có phiên bản, mở rộng BFS, tính toán blast-radius |
+| Prediction engine | ✅ Hoàn thành | 7 bộ trích xuất tín hiệu, APScheduler thích nghi, chặn lọc, tự tương quan, giải thích |
+| Thông báo | ✅ Hoàn thành | Email (SMTP) + Telegram, cron APScheduler, báo cáo Markdown hàng ngày |
+| Worker thu thập log TXT | ✅ Hoàn thành | Theo dõi thư mục, tracking offset theo file, phát hiện rotation, bulk index ES |
+| Frontend Next.js 15 | ✅ Hoàn thành | 20 app route: chat SSE UI, dashboard, trang CRUD admin, trang prediction, editor topology React Flow |
+| Mô hình bảo mật | ✅ Hoàn thành | JWT HS256, mã hóa thông tin xác thực AES-256-GCM, cô lập theo app, audit log |
 
-## Architecture
+## Kiến Trúc
 
-![System Architecture](images/Architect.png)
+![Kiến trúc hệ thống](images/Architect.png)
 
 ```mermaid
 flowchart TB
-    subgraph Frontend ["Next.js 15 Frontend"]
+    subgraph Frontend ["Frontend Next.js 15"]
         UI[Chat UI + SSE reader]
-        Admin[Admin pages]
-        Topo[React Flow topology]
+        Admin[Trang Admin]
+        Topo[Topology React Flow]
     end
 
-    subgraph API ["FastAPI Backend (async)"]
+    subgraph API ["Backend FastAPI (async)"]
         Auth[JWT auth middleware]
         Orch[SSE Orchestrator]
-        Intent[Intent Classifier — 17 types]
-        Expert[ExpertAgent — 4-phase loop]
-        Synth[Answer Synthesizer]
-        Pred[Prediction Engine — 7 extractors]
-        Notif[Notification Scheduler]
+        Intent[Bộ phân loại Intent — 17 loại]
+        Expert[ExpertAgent — vòng lặp 4 pha]
+        Synth[Bộ tổng hợp câu trả lời]
+        Pred[Prediction Engine — 7 bộ trích xuất]
+        Notif[Scheduler thông báo]
     end
 
-    subgraph Providers ["Pluggable Providers"]
+    subgraph Providers ["Provider có thể thay thế"]
         LLM[LLM: Ollama / vLLM / OpenAI]
         LogP[Log: ES / OpenSearch]
         MetP[Metrics: Prometheus / Metricbeat]
     end
 
-    subgraph Storage ["Storage"]
+    subgraph Storage ["Lưu trữ"]
         DB[(MariaDB)]
         Cache[(Redis)]
         ES[(Elasticsearch)]
     end
 
-    Worker[TXT Log Collector Worker]
+    Worker[Worker Thu Thập Log TXT]
 
     Frontend --> Auth
     Auth --> Orch
@@ -137,83 +131,83 @@ flowchart TB
     API --> Storage
 ```
 
-### Key Files
+### Các File Quan Trọng
 
-| Component | Path |
+| Thành phần | Đường dẫn |
 |---|---|
-| API entrypoint | `services/api/app/main.py` |
-| Chat SSE workflow | `services/api/app/orchestrator/workflow.py` |
-| Intent classifier | `services/api/app/agents/intent.py` |
-| Query executor | `services/api/app/agents/query_executor.py` |
+| Điểm vào API | `services/api/app/main.py` |
+| Luồng chat SSE | `services/api/app/orchestrator/workflow.py` |
+| Bộ phân loại intent | `services/api/app/agents/intent.py` |
+| Bộ thực thi truy vấn | `services/api/app/agents/query_executor.py` |
 | ExpertAgent | `services/api/app/agents/expert_agent.py` |
-| Answer synthesizer | `services/api/app/agents/synthesizer.py` |
+| Bộ tổng hợp câu trả lời | `services/api/app/agents/synthesizer.py` |
 | Prediction runner | `services/api/app/prediction/runner.py` |
-| Frontend chat | `services/frontend/src/components/chat/ChatWindow.tsx` |
-| DB schema | `infra/init-db/01_schema.sql` |
-| Dev stack | `infra/docker-compose.dev.yml` |
+| Chat frontend | `services/frontend/src/components/chat/ChatWindow.tsx` |
+| Schema DB | `infra/init-db/01_schema.sql` |
+| Stack dev | `infra/docker-compose.dev.yml` |
 
-## AI Pipeline
+## Pipeline AI
 
 ```mermaid
 sequenceDiagram
     participant U as Operator
-    participant FE as Next.js Frontend
+    participant FE as Frontend Next.js
     participant API as FastAPI /chat
     participant R as Redis
     participant LLM as LLM Provider
     participant ES as Elasticsearch
     participant PM as Prometheus
 
-    U->>FE: Type question (Vietnamese)
+    U->>FE: Nhập câu hỏi (tiếng Việt)
     FE->>API: POST /api/v1/chat (fetch + ReadableStream)
-    API->>R: Load ConversationContext (fallback: MariaDB)
-    API->>LLM: Classify intent → JSON {intent, app_ids, time_range, keywords}
-    Note over API: 13 fast-path rules checked before LLM call
+    API->>R: Tải ConversationContext (fallback: MariaDB)
+    API->>LLM: Phân loại intent → JSON {intent, app_ids, time_range, keywords}
+    Note over API: 13 fast-path rules kiểm tra trước khi gọi LLM
     API-->>FE: SSE event: step "Đang truy vấn logs..."
     API->>ES: asyncio.gather — app_logs + syslog + log_stats + top_errors
-    API->>PM: Batch PromQL — CPU/RAM/Disk/Net per server
-    API->>LLM: Synthesize answer from evidence (streaming, temp=0.1)
+    API->>PM: Batch PromQL — CPU/RAM/Disk/Net mỗi server
+    API->>LLM: Tổng hợp câu trả lời từ bằng chứng (streaming, temp=0.1)
     LLM-->>API: Token stream
     API-->>FE: SSE events: token × N
-    API-->>FE: SSE event: server_table (if metrics fetched)
-    API-->>FE: SSE event: log_stats (if ES queried)
-    API-->>FE: SSE event: incident_draft (if anomaly detected)
+    API-->>FE: SSE event: server_table (nếu đã lấy metrics)
+    API-->>FE: SSE event: log_stats (nếu đã truy vấn ES)
+    API-->>FE: SSE event: incident_draft (nếu phát hiện bất thường)
     API-->>FE: SSE event: done {session_id, intent, latency_ms}
-    API->>R: Write-through ConversationContext
+    API->>R: Ghi đồng thời ConversationContext
 ```
 
-## ExpertAgent — ROOT_CAUSE Analysis
+## ExpertAgent — Phân Tích ROOT_CAUSE
 
-When intent is `ROOT_CAUSE`, `DEEP_ANALYSIS`, or `EXPERT_ANALYSIS`, the ExpertAgent replaces the standard pipeline:
+Khi intent là `ROOT_CAUSE`, `DEEP_ANALYSIS` hoặc `EXPERT_ANALYSIS`, ExpertAgent thay thế pipeline thông thường:
 
 ```
-Phase 1 — Plan:   LLM generates an investigation plan (JSON tool calls)
-Phase 2 — Fetch:  Execute plan steps in parallel: ES queries, Prometheus metrics, topology BFS, incident history
-Phase 3 — Stream: Synthesize findings into a grounded answer with streaming
-Phase 4 — Hypothesis: Build causal graph — nodes (services/servers) + edges (propagation paths) + confidence scores
+Pha 1 — Lập kế hoạch:  LLM tạo kế hoạch điều tra (JSON tool calls)
+Pha 2 — Thu thập:      Thực thi các bước kế hoạch song song: truy vấn ES, metrics Prometheus, BFS topology, lịch sử incident
+Pha 3 — Streaming:     Tổng hợp kết quả thành câu trả lời có dẫn chứng với streaming
+Pha 4 — Giả thuyết:   Xây đồ thị nhân quả — nodes (service/server) + edges (đường lan truyền) + điểm tin cậy
 ```
 
-Output includes a `hypothesis_graph` SSE event rendered as an interactive diagram in the frontend.
+Kết quả bao gồm SSE event `hypothesis_graph` được render thành sơ đồ tương tác trên frontend.
 
 ## Prediction Engine
 
-Seven independent signal extractors run on APScheduler (adaptive 60s interval):
+Bảy bộ trích xuất tín hiệu độc lập chạy trên APScheduler (chu kỳ thích nghi 60s):
 
-| Extractor | Method | Threshold |
+| Bộ trích xuất | Phương pháp | Ngưỡng |
 |---|---|---|
-| Capacity forecasting | OLS linear regression | R² ≥ 0.70, horizon ≤ 72h |
-| Baseline deviation | EWMA z-score | warn: 2.5σ, crit: 4.0σ |
-| Acceleration | CPU slope | ≥ 20%/h sustained |
-| Novel error | Jaccard distance | < 0.30 vs known patterns |
-| Behavioral drift | Variance/entropy ratio | ≥ 3.0 |
-| Composite signal | Multi-signal correlation | ≥ 2 distinct types |
-| Recurrence | Jaccard similarity | > 0.70 vs resolved incidents |
+| Dự báo dung lượng | Hồi quy tuyến tính OLS | R² ≥ 0.70, chân trời ≤ 72h |
+| Lệch baseline | EWMA z-score | cảnh báo: 2.5σ, nguy kịch: 4.0σ |
+| Tăng tốc | Độ dốc CPU | ≥ 20%/h liên tục |
+| Lỗi mới | Khoảng cách Jaccard | < 0.30 so với pattern đã biết |
+| Trôi dạt hành vi | Tỉ lệ variance/entropy | ≥ 3.0 |
+| Tín hiệu tổ hợp | Tương quan đa tín hiệu | ≥ 2 loại khác biệt |
+| Lặp lại | Jaccard similarity | > 0.70 so với incident đã giải quyết |
 
-Alerts include auto-generated human-readable explanations, blast-radius BFS from topology graph, and suppression logic to prevent alert storms.
+Các alert bao gồm giải thích tự động bằng ngôn ngữ tự nhiên, BFS blast-radius từ đồ thị topology, và logic chặn lọc để ngăn bão cảnh báo.
 
-## Topology Graph
+## Đồ Thị Topology
 
-AIOps maintains a versioned directed graph of the entire service landscape. Each node is a service, server, or database; each edge carries a `propagation_prob` (0.0–1.0) that encodes how likely a failure propagates from source to target.
+AIOps duy trì đồ thị có hướng có phiên bản của toàn bộ hạ tầng dịch vụ. Mỗi node là một service, server hoặc database; mỗi edge mang `propagation_prob` (0.0–1.0) mã hóa khả năng lỗi lan truyền từ nguồn đến đích.
 
 ```
 topology_versions (1)
@@ -221,171 +215,173 @@ topology_versions (1)
     └── topology_edges  — source→target, relation_type, propagation_prob, weight
 ```
 
-**How it's built:** Operators draw the graph in the React Flow editor (Admin → Topology). Nodes can be dragged and connected; dagre auto-layout arranges them left-to-right. The editor saves positions and edges back to the API (`PUT /api/v1/topology`). Multiple versions can coexist — only the active version is used at runtime.
+**Cách xây dựng:** Operator vẽ đồ thị trong editor React Flow (Admin → Topology). Có thể kéo thả nodes và kết nối edges; dagre auto-layout sắp xếp từ trái sang phải. Editor lưu vị trí và edges về API (`PUT /api/v1/topology`). Nhiều phiên bản có thể cùng tồn tại — chỉ phiên bản active được dùng khi chạy.
 
-**How it's used at runtime:**
+**Cách sử dụng khi chạy:**
 
-| Consumer | What it does |
+| Thành phần | Chức năng |
 |---|---|
-| ExpertAgent (ROOT_CAUSE) | BFS 2-hop subgraph expansion from the suspected fault node — feeds topology context to the LLM synthesizer |
-| Blast Radius calculator | Probabilistic BFS (max 3 hops), prunes paths where cumulative probability < 0.10 — used in prediction alerts |
-| Prediction alerts | Each alert includes the blast radius: downstream services ranked by cumulative impact probability |
-| `hypothesis_graph` SSE | ExpertAgent emits the impacted subgraph as an SSE event — rendered as interactive diagram in the frontend |
+| ExpertAgent (ROOT_CAUSE) | Mở rộng BFS 2-hop từ node lỗi nghi ngờ — cung cấp ngữ cảnh topology cho LLM synthesizer |
+| Tính toán Blast Radius | BFS xác suất (tối đa 3 hop), loại bỏ đường có xác suất tích lũy < 0.10 — dùng trong prediction alerts |
+| Prediction alerts | Mỗi alert bao gồm blast radius: các service downstream xếp hạng theo xác suất tác động tích lũy |
+| SSE `hypothesis_graph` | ExpertAgent phát event SSE subgraph bị ảnh hưởng — render thành sơ đồ tương tác trên frontend |
 
-**Blast radius algorithm:**
+**Thuật toán blast radius:**
 ```
-BFS from origin node:
-  for each outgoing edge:
-    new_prob = parent_prob × edge.propagation_prob
-    if new_prob ≥ 0.10 → add to impact list, continue BFS
-  max depth: 3 hops
-  output: impacted nodes sorted by cumulative_prob descending
+BFS từ node gốc:
+  với mỗi edge đi ra:
+    new_prob = xác_suất_cha × edge.propagation_prob
+    nếu new_prob ≥ 0.10 → thêm vào danh sách tác động, tiếp tục BFS
+  độ sâu tối đa: 3 hop
+  kết quả: các node bị ảnh hưởng sắp xếp theo cumulative_prob giảm dần
 ```
 
-**Edge relation types:** `calls`, `depends_on`, `hosts`, `replicates`, `load-balances` — stored in `relation_type`, visible as edge labels in the React Flow editor.
+**Loại quan hệ trên edge:** `calls`, `depends_on`, `hosts`, `replicates`, `load-balances` — lưu trong `relation_type`, hiển thị là nhãn edge trong editor React Flow.
 
-## Knowledge Base — Incident History
+## Kho Tri Thức — Lịch Sử Incident
 
-The knowledge base is the accumulated incident history stored in MariaDB. When the AI pipeline analyzes a new problem, it searches this history for similar past incidents and surfaces their solutions directly in the answer.
+Kho tri thức là lịch sử incident tích lũy lưu trong MariaDB. Khi pipeline AI phân tích một vấn đề mới, nó tìm trong lịch sử này các incident tương tự trong quá khứ và đưa giải pháp trực tiếp vào câu trả lời.
 
-**Schema (relevant fields):**
+**Schema (các trường quan trọng):**
 
 ```sql
 incidents (
   id, app_id, title, description, severity, status,
-  root_cause,       -- analyst-written root cause
-  solution,         -- resolution steps
-  error_patterns,   -- JSON array of matched error signatures
-  timeline,         -- JSON array of timeline events
+  root_cause,       -- nguyên nhân gốc rễ do analyst viết
+  solution,         -- các bước giải quyết
+  error_patterns,   -- JSON array chữ ký lỗi đã khớp
+  timeline,         -- JSON array sự kiện timeline
   resolved_at
 )
 ```
 
-**Similarity search — `IncidentMatcher`:**
+**Tìm kiếm tương đồng — `IncidentMatcher`:**
 
-Two search modes run on every root-cause analysis:
+Hai chế độ tìm kiếm chạy trên mỗi phân tích nguyên nhân gốc rễ:
 
-| Mode | Algorithm | Scope | Threshold |
+| Chế độ | Thuật toán | Phạm vi | Ngưỡng |
 |---|---|---|---|
-| Title/description match | Jaccard similarity on tokenized text (Vietnamese stopwords stripped) | Last 50 incidents for the same `app_id` | ≥ 0.25 |
-| Error pattern match | Jaccard on `error_patterns` JSON field vs current top error messages | Resolved incidents only | ≥ 0.20 |
+| Khớp tiêu đề/mô tả | Jaccard similarity trên văn bản tokenize (loại bỏ stopword tiếng Việt) | 50 incident gần nhất cùng `app_id` | ≥ 0.25 |
+| Khớp pattern lỗi | Jaccard trên trường `error_patterns` JSON so với top error message hiện tại | Chỉ incident đã giải quyết | ≥ 0.20 |
 
-Results are ranked by similarity score and injected into the LLM synthesizer context — the model is instructed to reference `solution` from similar incidents when available.
+Kết quả được xếp hạng theo điểm tương đồng và đưa vào ngữ cảnh LLM synthesizer — model được hướng dẫn tham chiếu `solution` từ incident tương tự khi có.
 
-**How the knowledge base grows automatically:**
+**Kho tri thức tự tăng trưởng như thế nào:**
 
-1. Chat analysis detects an anomaly → emits `incident_draft` SSE event
-2. Operator confirms → incident created with title, severity, error_patterns, affected servers
-3. During investigation, operator adds timeline events and root_cause via UI
-4. After resolution, `solution` field is filled → this becomes searchable institutional knowledge
-5. Prediction Engine's **recurrence extractor** scans new error patterns against `error_patterns` of all resolved incidents (Jaccard > 0.70 triggers a recurrence alert)
+1. Phân tích chat phát hiện bất thường → phát SSE event `incident_draft`
+2. Operator xác nhận → incident được tạo với tiêu đề, mức độ nghiêm trọng, error_patterns, server bị ảnh hưởng
+3. Trong quá trình điều tra, operator thêm timeline events và root_cause qua UI
+4. Sau khi giải quyết, trường `solution` được điền → trở thành tri thức tổ chức có thể tìm kiếm
+5. **Bộ trích xuất recurrence** của Prediction Engine quét pattern lỗi mới so với `error_patterns` của mọi incident đã giải quyết (Jaccard > 0.70 kích hoạt cảnh báo lặp lại)
 
-**Incident lifecycle:**
+**Vòng đời incident:**
 
 ```
-auto-draft (chat)
-    → open (operator confirms)
-        → investigating (team working)
-            → resolved (root_cause + solution filled)
-                → knowledge base entry (searchable by future analyses)
+tự soạn thảo (chat)
+    → mở (operator xác nhận)
+        → đang điều tra (đội đang xử lý)
+            → đã giải quyết (điền root_cause + solution)
+                → mục trong kho tri thức (tìm kiếm được cho các phân tích tương lai)
 ```
 
-## Quick Start
+## Khởi Động Nhanh
 
-**Prerequisites:** Docker + Docker Compose, Ollama (or any OpenAI-compatible LLM endpoint)
+**Yêu cầu:** Docker + Docker Compose, Ollama (hoặc bất kỳ LLM endpoint tương thích OpenAI)
 
 ```bash
-# 1. Clone and configure
+# 1. Clone và cấu hình
 cp .env.example .env
-# Edit .env: set JWT_SECRET (min 32 chars), ENCRYPTION_KEY (64 hex chars)
+# Chỉnh .env: đặt JWT_SECRET (tối thiểu 32 ký tự), ENCRYPTION_KEY (64 ký tự hex)
 
-# 2. Start the dev stack (MariaDB + Redis + API + Worker + Ollama)
+# 2. Khởi động stack dev (MariaDB + Redis + API + Worker + Ollama)
 docker compose -f infra/docker-compose.dev.yml up --build
 
-# 3. Pull a local model
+# 3. Pull model local
 docker exec ollama ollama pull qwen2.5:14b
 
-# 4. Verify
+# 4. Kiểm tra
 curl http://localhost:8000/health
 curl http://localhost:8000/ready
 
-# 5. Start the frontend
+# 5. Khởi động frontend
 cd services/frontend && npm install && npm run dev
 # → http://localhost:3000
 ```
 
-Default admin credentials (seeded):
+Tài khoản admin mặc định (đã seed sẵn):
 ```
 username: admin
 password: changeme123
 ```
 
-## Example Chat Session
+Xem hướng dẫn chi tiết từng bước: [`quick-start.md`](quick-start.md)
+
+## Ví Dụ Phiên Chat
 
 ```bash
-# Get a token
+# Lấy token
 TOKEN=$(curl -s -X POST http://localhost:8000/api/v1/auth/token \
   -H 'Content-Type: application/json' \
   -d '{"username":"admin","password":"changeme123"}' | jq -r .access_token)
 
-# Ask a question — response is SSE stream
+# Đặt câu hỏi — response là SSE stream
 curl -N -X POST http://localhost:8000/api/v1/chat \
   -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/json' \
   -d '{"message": "ERP hôm nay có lỗi nghiêm trọng không?", "app_id": "erp"}'
 ```
 
-SSE event types returned:
+Các loại SSE event trả về:
 
-| Event | Payload | When |
+| Event | Payload | Khi nào |
 |---|---|---|
-| `step` | `{text}` | Agent is fetching data |
-| `es_query` | `{index, body}` | ES query executed |
-| `server_table` | `{servers[]}` | Metrics fetched |
-| `log_stats` | `{by_level, top_errors}` | Log aggregation done |
-| `token` | `{token}` | LLM streaming token |
-| `incident_draft` | `{title, severity, app_id}` | Anomaly detected |
-| `hypothesis_graph` | `{nodes, edges}` | ROOT_CAUSE analysis |
-| `requires_input` | `{form}` | Agent needs server list |
-| `done` | `{session_id, intent, latency_ms}` | Complete |
-| `error` | `{message}` | Error |
+| `step` | `{text}` | Agent đang lấy dữ liệu |
+| `es_query` | `{index, body}` | Đã thực thi truy vấn ES |
+| `server_table` | `{servers[]}` | Đã lấy metrics |
+| `log_stats` | `{by_level, top_errors}` | Đã tổng hợp log |
+| `token` | `{token}` | Token streaming từ LLM |
+| `incident_draft` | `{title, severity, app_id}` | Phát hiện bất thường |
+| `hypothesis_graph` | `{nodes, edges}` | Phân tích ROOT_CAUSE |
+| `requires_input` | `{form}` | Agent cần danh sách server |
+| `done` | `{session_id, intent, latency_ms}` | Hoàn thành |
+| `error` | `{message}` | Lỗi |
 
-## Security Model
+## Mô Hình Bảo Mật
 
-- **On-premise by design** — no data leaves the internal network; LLM runs locally
-- **JWT HS256** authentication, 8h expiry
-- **App-level isolation** — `allowed_apps` in JWT token, enforced at every query
-- **AES-256-GCM** encryption for stored datasource credentials (ES API keys, Kibana keys, LLM API keys)
-- **Audit log** — every write operation recorded with user, action, entity, IP
+- **On-premise theo thiết kế** — không có dữ liệu nào rời mạng nội bộ; LLM chạy local
+- **JWT HS256** xác thực, hết hạn sau 8h
+- **Cô lập theo app** — `allowed_apps` trong JWT token, áp dụng tại mọi truy vấn
+- **AES-256-GCM** mã hóa thông tin xác thực datasource được lưu (ES API key, Kibana key, LLM API key)
+- **Audit log** — mọi thao tác ghi đều được ghi lại với user, hành động, thực thể, IP
 
 ## Tech Stack
 
-| Layer | Technology |
+| Lớp | Công nghệ |
 |---|---|
 | Backend API | Python 3.11 + FastAPI (async) |
-| Config DB | MariaDB 10.11 |
-| Session / Cache | Redis (Sentinel-aware) |
-| LLM | Ollama / vLLM (Qwen 2.5 14B default) |
-| Log Storage | Elasticsearch 8.9 / OpenSearch |
+| Database cấu hình | MariaDB 10.11 |
+| Session / Cache | Redis (hỗ trợ Sentinel) |
+| LLM | Ollama / vLLM (Qwen 2.5 14B mặc định) |
+| Lưu trữ log | Elasticsearch 8.9 / OpenSearch |
 | Metrics | Prometheus / Metricbeat |
 | ORM | SQLAlchemy 2.x async (asyncmy) |
-| Migrations | Alembic |
+| Migration | Alembic |
 | Task Scheduler | APScheduler |
 | Frontend | Next.js 15 + App Router + TypeScript |
 | UI Components | shadcn/ui + Tailwind CSS |
-| State | Zustand + zustand/middleware/persist |
-| Graph editor | React Flow + dagre layout |
-| Notifications | aiosmtplib (Email) + Telegram Bot API |
+| State management | Zustand + zustand/middleware/persist |
+| Editor đồ thị | React Flow + dagre layout |
+| Thông báo | aiosmtplib (Email) + Telegram Bot API |
 
-## Documentation
+## Tài Liệu
 
-- Architecture deep-dive: `docs/01_architecture.md`
-- Database schema: `docs/02_database_schema.md`
+- Kiến trúc chi tiết: `docs/01_architecture.md`
+- Schema database: `docs/02_database_schema.md`
 - API contracts: `docs/03_api_contracts.md`
-- Developer guide: `docs/04_dev.md`
-- Incident intelligence: `docs/05_incident_intelligence.md`
+- Hướng dẫn phát triển: `docs/04_dev.md`
+- Phân tích incident intelligence: `docs/05_incident_intelligence.md`
 - ADRs: `docs/04_adr/`
 
-## License
+## Giấy Phép
 
 MIT
