@@ -27,7 +27,7 @@ Senior engineer giải quyết được sự cố trong 10 phút vì đã gặp 
 
 **Giải pháp:** AIOps đặt câu hỏi ngược lại — điều gì xảy ra nếu hệ thống tự biết phải tra cứu ở đâu, tổng hợp ngữ cảnh nào, và trả lời trực tiếp?
 
-Operator gõ một câu hỏi tự nhiên. Hệ thống phân loại ý định, truy vấn ES + Prometheus + topology + lịch sử incident song song, tổng hợp câu trả lời có dẫn chứng và stream trực tiếp về trong vài giây. Nếu phát hiện bất thường, tự động soạn thảo incident để operator xác nhận một click. Nếu là sự cố đã gặp trước đây, hiển thị giải pháp từ lần trước.
+Operator gõ một câu hỏi tự nhiên. Hệ thống phân loại ý định, truy vấn Logging + Metrics + topology + lịch sử incident song song, tổng hợp câu trả lời có dẫn chứng và stream trực tiếp về trong vài giây. Nếu phát hiện bất thường, tự động soạn thảo incident để operator xác nhận một click. Nếu là sự cố đã gặp trước đây, hiển thị giải pháp từ lần trước.
 
 ## Điểm Nổi Bật Kỹ Thuật
 
@@ -409,6 +409,61 @@ Các loại SSE event trả về:
 - Hướng dẫn phát triển: `docs/04_dev.md`
 - Phân tích incident intelligence: `docs/05_incident_intelligence.md`
 - ADRs: `docs/04_adr/`
+
+## 17 Loại Intent
+
+Bộ phân loại intent là cổng vào của mọi câu hỏi. Mỗi message từ operator được phân loại vào một trong 17 intent trước khi pipeline quyết định luồng xử lý, nguồn dữ liệu cần truy vấn và cách tổng hợp câu trả lời. 13 fast-path rule được kiểm tra trước để bypass LLM call khi có thể, giảm độ trễ xuống dưới 1ms.
+
+### Monitoring — Giám sát trạng thái thời gian thực
+
+| Intent | Mô tả | Nguồn dữ liệu |
+|---|---|---|
+| `HEALTH_CHECK` | Kiểm tra tổng quan sức khỏe hệ thống, service up/down, error rate | ES log + Prometheus metrics |
+| `METRIC_QUERY` | Truy vấn chỉ số cụ thể: CPU, RAM, Disk, Network, connection pool | Prometheus / Metricbeat |
+| `ALERT_STATUS` | Xem trạng thái các cảnh báo đang active, đã acknowledge hoặc đã giải quyết | MariaDB incidents + Prediction alerts |
+| `ERROR_LOOKUP` | Tìm kiếm lỗi cụ thể theo mã lỗi, message pattern hoặc khoảng thời gian | Elasticsearch full-text search |
+
+### Analysis — Phân tích chuyên sâu
+
+| Intent | Mô tả | Nguồn dữ liệu |
+|---|---|---|
+| `ROOT_CAUSE` | Phân tích nguyên nhân gốc rễ sự cố — kích hoạt **ExpertAgent** 4 pha | ES + Prometheus + Topology BFS + Incident history |
+| `INCIDENT_ANALYSIS` | Phân tích một incident cụ thể: timeline, service bị ảnh hưởng, pattern lỗi | MariaDB incidents + ES log xung quanh thời điểm |
+| `HTTP_ANALYSIS` | Phân tích HTTP request/response: status code phân bố, slow endpoint, error path | ES HTTP access log |
+| `TREND_ANALYSIS` | Phân tích xu hướng theo thời gian: tăng trưởng lỗi, drift metrics, seasonal pattern | ES aggregation + Prometheus range query |
+| `LOG_ANOMALY` | Phát hiện bất thường trong log: spike đột ngột, pattern mới xuất hiện, im lặng bất thường | ES với EWMA baseline so sánh |
+
+### Prediction — Dự báo và cảnh báo sớm
+
+| Intent | Mô tả | Nguồn dữ liệu |
+|---|---|---|
+| `CAPACITY_PLANNING` | Dự báo khi nào disk/RAM/CPU chạm ngưỡng dựa trên xu hướng hiện tại | Prometheus range + OLS regression |
+
+### Security — Bảo mật và kiểm toán
+
+| Intent | Mô tả | Nguồn dữ liệu |
+|---|---|---|
+| `SECURITY_AUDIT` | Kiểm tra log bảo mật: failed login, privilege escalation, suspicious IP, config change | ES security log + audit log |
+| `THREAT_MODEL` | Mô hình hóa bề mặt tấn công từ topology: service nào exposed, path nào có blast radius cao | Topology graph + Prediction blast radius |
+
+### Operations — Vận hành hệ thống
+
+| Intent | Mô tả | Nguồn dữ liệu |
+|---|---|---|
+| `SERVER_QUERY` | Truy vấn thông tin server: IP, hostname, service đang chạy, metrics tổng hợp | Server registry + Prometheus |
+| `ALERT_MANAGEMENT` | Tạo, acknowledge, đóng hoặc điều chỉnh ngưỡng cảnh báo | MariaDB incidents + Prediction alerts |
+| `PASTE_ALERT` | Operator dán trực tiếp nội dung alert/log/stack trace — hệ thống tự phân tích | Nội dung paste + ES context lookup |
+| `VERIFY_FIX` | Xác minh một fix đã được áp dụng thực sự giải quyết vấn đề bằng cách so sánh metrics/log trước và sau | ES + Prometheus với time range tương đối |
+
+### UX — Tương tác người dùng
+
+| Intent | Mô tả | Nguồn dữ liệu |
+|---|---|---|
+| `CLARIFICATION` | Câu hỏi mơ hồ hoặc thiếu thông tin — hệ thống hỏi lại để làm rõ app_id, time range, hoặc ngữ cảnh | ConversationContext |
+
+---
+
+> **Luồng phân loại:** Fast-path rules (1ms) → LLM classifier (nếu không match fast-path) → `post_llm_override()` kiểm tra thêm → pipeline tương ứng với intent được chọn.
 
 ## Giấy Phép
 
