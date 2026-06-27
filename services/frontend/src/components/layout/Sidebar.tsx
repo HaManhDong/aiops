@@ -5,7 +5,7 @@ import {
   MessageSquare, LayoutDashboard, Server, Settings,
   LogOut, ChevronDown, ChevronRight, Activity,
   Users, Database, Map, BellRing, ClipboardList,
-  TrendingUp, AlertTriangle, BarChart2, LineChart, History,
+  TrendingUp, AlertTriangle, BarChart2, LineChart, History, Siren,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuthStore } from "@/store/auth"
@@ -83,6 +83,7 @@ export function Sidebar() {
   const navItems: NavItem[] = [
     { label: "Dashboard", href: "/dashboard", icon: <LayoutDashboard className="h-4 w-4" /> },
     { label: "Chat", href: "/chat", icon: <MessageSquare className="h-4 w-4" /> },
+    { label: "Incidents", href: "/incidents", icon: <Siren className="h-4 w-4" /> },
     ...(isAdmin
       ? [
           {

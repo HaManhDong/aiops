@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build --turbopack",
-    "start": "next start",
+    "build": "NEXT_DIST_DIR=.next-build next build --turbopack",
+    "start": "NEXT_DIST_DIR=.next-build next start",
     "lint": "eslint",
     "test": "vitest run"
   },

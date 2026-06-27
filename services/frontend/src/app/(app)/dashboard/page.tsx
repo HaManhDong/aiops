@@ -296,7 +296,7 @@ export default function DashboardPage() {
         <Card className="ops-card rounded-xl">
           <CardHeader className="flex-row items-center justify-between space-y-0 pb-3">
             <CardTitle className="text-base">Incident queue</CardTitle>
-            <Link href="/admin/predictions/alerts" className="inline-flex items-center gap-1 text-xs font-medium text-primary">
+            <Link href="/incidents" className="inline-flex items-center gap-1 text-xs font-medium text-primary">
               Xem tất cả <ArrowUpRight className="h-3.5 w-3.5" />
             </Link>
           </CardHeader>
