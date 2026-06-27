@@ -1,4 +1,4 @@
-# Proactive Agent Design — VST AI AIOps Platform
+# Proactive Agent Design — AIOps
 
 **Trạng thái:** Chờ implement  
 **Ngày thiết kế:** 2026-05-07  

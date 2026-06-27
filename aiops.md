@@ -1,4 +1,4 @@
-# VST AI OpsAI Platform — Tài liệu Rebuild
+# AIOps — Tài liệu Rebuild
 
 > Tài liệu đầy đủ để build lại toàn bộ hệ thống từ đầu.  
 > Cập nhật: 2026-06-26
@@ -30,8 +30,8 @@
 
 ## 1. Tổng quan
 
-**VST AI Log Intelligence Platform** — AI Agent platform giúp đội vận hành VST:
-- Truy vấn trạng thái hệ thống bằng tiếng Việt (natural language → SSE streaming answer)
+**AIOps** — AI Agent platform giúp đội vận hành VST:
+- Truy vấn trạng thái hệ thống bằng ngôn ngữ tự nhiên (natural language → SSE streaming answer)
 - Phân tích root cause từ log/metrics tự động (ExpertAgent agentic loop)
 - Phát hiện bất thường và dự đoán sự cố trước khi xảy ra (Prediction Engine)
 - Dashboard tổng hợp KPI, incident management, server topology
@@ -68,7 +68,7 @@
 ## 3. Cấu trúc thư mục
 
 ```
-vst-ai-platform/
+aiops/
 ├── CLAUDE.md                          ← project instructions cho Claude Code
 ├── .env.example                       ← template env vars
 ├── .gitignore
@@ -1567,8 +1567,8 @@ Không lưu state trong memory. State → Redis. DB connections → pooled. ES d
 ### Bước 2: Clone và cấu hình
 
 ```bash
-git clone <repo> vst-ai-platform
-cd vst-ai-platform
+git clone <repo> aiops
+cd aiops
 
 # Tạo .env từ template
 cp .env.example .env

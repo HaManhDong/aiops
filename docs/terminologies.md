@@ -1,4 +1,4 @@
-# Thuật ngữ & Thuật toán — VST AI OpsAI Platform
+# Thuật ngữ & Thuật toán — AIOps
 
 > Tài liệu này giải thích toàn bộ các thuật toán, kỹ thuật, và thuật ngữ đang được sử dụng trong
 > codebase, kèm ví dụ cụ thể lấy từ project.

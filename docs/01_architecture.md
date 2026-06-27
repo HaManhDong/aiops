@@ -1,4 +1,4 @@
-# Architecture — VST AI Log Intelligence Platform
+# Architecture — AIOps
 
 _Cập nhật: 2026-05-15_
 

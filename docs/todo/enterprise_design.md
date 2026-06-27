@@ -1,4 +1,4 @@
-# VST AI Platform — Enterprise Design Review
+# AIOps — Enterprise Design Review
 
 > **Tác giả:** Claude (vai trò: Product Architect, tiêu chuẩn enterprise)  
 > **Ngày:** 2026-05-08  
@@ -8,7 +8,7 @@
 
 ## Lời mở đầu
 
-Sản phẩm này có một **ý tưởng core đúng đắn và có giá trị**: đưa AI vào vòng lặp vận hành, giúp đội ops truy vấn hệ thống bằng tiếng Việt thay vì phải biết Kibana, Prometheus, Grafana. Đây là điểm khác biệt thực sự so với các giải pháp AIOps trên thị trường vốn đều bằng tiếng Anh và yêu cầu người dùng kỹ thuật cao.
+Sản phẩm này có một **ý tưởng core đúng đắn và có giá trị**: đưa AI vào vòng lặp vận hành, giúp đội ops truy vấn hệ thống bằng ngôn ngữ tự nhiên thay vì phải biết Kibana, Prometheus, Grafana. Đây là điểm khác biệt thực sự so với các giải pháp AIOps trên thị trường vốn thường yêu cầu query language, dashboard filter, và người dùng kỹ thuật cao.
 
 Tuy nhiên, **một ý tưởng đúng chưa đủ để làm sản phẩm enterprise**. Đội vận hành VST sẽ đánh giá sản phẩm trong 30 giây đầu tiên dùng thử. Nếu họ không thấy ngay giá trị — họ sẽ quay lại SSH và Kibana. Tài liệu này phân tích thẳng thắn những gì đang thiếu, những gì cần sửa, và con đường để sản phẩm xứng đáng với tiêu chuẩn enterprise.
 
@@ -417,7 +417,7 @@ Hiện tại UI phục vụ cả 3 role theo cùng một layout → không ai ha
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  VST AI          🔔 2     [ERP ▼]     Duc Nguyen  [●] Ops  │
+│  AIOps           🔔 2     [ERP ▼]     Duc Nguyen  [●] Ops  │
 └─────────────────────────────────────────────────────────────┘
          ↑              ↑         ↑
      Notification   App switcher  Role context

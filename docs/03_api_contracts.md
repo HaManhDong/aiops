@@ -1,4 +1,4 @@
-# API Contracts — VST AI Log Intelligence Platform
+# API Contracts — AIOps
 
 Base URL: `https://vst-ai.internal/api/v1`
 Auth: `Authorization: Bearer <jwt_token>` (except public endpoints)

@@ -1,4 +1,4 @@
-# Plan — VST AI OpsAI Platform: Build từ đầu
+# Plan — AIOps: Build từ đầu
 
 > Kế hoạch triển khai chi tiết dựa trên `aiops.md` và toàn bộ tài liệu trong `docs/`.
 > Mỗi phase có thể chạy độc lập. Dev một người ước tính 3-4 tháng cho Phase 1-3.

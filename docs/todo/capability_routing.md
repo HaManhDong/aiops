@@ -66,7 +66,7 @@ Thứ tự thực hiện: A → B+G1-G4 (song song) → C+D+G5-G6 → E → F
   - Redis-only (acceptable to lose on cache expiry, giống `analysis_stage`)
 
 - [x] **G2** — Viết `_query_signature(text: str) -> str` trong `orchestrator/intent_router.py`:
-  - Normalize: lowercase, extract words, loại stopwords tiếng Việt
+  - Normalize: lowercase, extract words, loại stopwords đa ngôn ngữ
   - Sort và join top-12 keywords → dạng `"alert|erp|hôm|lỗi|nay"`
 
 - [x] **G3** — Thêm dedup check vào **đầu** `pre_llm_dispatch()`, trước vòng for routes:

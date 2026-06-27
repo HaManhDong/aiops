@@ -1,4 +1,4 @@
-# VST AI Log Intelligence Platform — Strategic Roadmap
+# AIOps — Strategic Roadmap
 
 _Cập nhật: 2026-05-11 (P0 + P1 hoàn thành)_
 

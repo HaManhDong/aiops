@@ -384,7 +384,7 @@ for h_data in initial_hypotheses["hypotheses"]:
 
 ### Qwen 2.5 14B strengths (relevant)
 - **Hỗ trợ native function calling** qua OpenAI API format — đây là điều kiện cần
-- **Vietnamese competent** — có thể reason về log tiếng Việt
+- **Multilingual competent** — có thể reason về log đa ngôn ngữ
 - **Context 8192 tokens** — đủ cho ReAct loop với 4-5 tool calls
 - **Tool-use training** — Qwen 2.5-Instruct được fine-tune với tool use tasks
 

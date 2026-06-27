@@ -2,12 +2,12 @@
 
 **Trạng thái**: Accepted
 **Ngày**: 2026-04-23
-**Tác giả**: Team VST AI
+**Tác giả**: Team AIOps
 
 ## Bối cảnh
 
 Hệ thống cần LLM để:
-1. Phân loại intent từ câu hỏi tiếng Việt
+1. Phân loại intent từ câu hỏi ngôn ngữ tự nhiên
 2. Tổng hợp câu trả lời từ log/metrics data
 
 Các lựa chọn đã xem xét:
@@ -22,7 +22,7 @@ Dùng **Qwen 2.5 14B** qua **Ollama** chạy on-premise trên server VST.
 ## Lý do
 
 1. **Bảo mật dữ liệu**: log hệ thống ERP chứa thông tin nhạy cảm (lỗi nghiệp vụ, stack trace, IP nội bộ). Không thể gửi ra cloud.
-2. **Tiếng Việt**: Qwen 2.5 14B là model open-source có chất lượng tiếng Việt tốt nhất tại thời điểm chọn (2026-Q1), vượt Llama 3.1 8B ở các task NLP tiếng Việt.
+2. **Không giới hạn ngôn ngữ**: Qwen 2.5 14B có năng lực đa ngôn ngữ tốt trong nhóm model open-source tại thời điểm chọn (2026-Q1), phù hợp cho đội vận hành dùng ngôn ngữ tự nhiên lẫn thuật ngữ kỹ thuật.
 3. **Chi phí**: không phụ thuộc API key, không tốn tiền per-token sau khi deploy.
 4. **Ollama**: đơn giản nhất để self-host, có HTTP API tương thích, hỗ trợ streaming.
 

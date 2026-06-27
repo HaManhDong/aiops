@@ -1,4 +1,4 @@
-# Developer Guide — VST AI Log Intelligence Platform
+# Developer Guide — AIOps
 
 _Cập nhật: 2026-05-15_
 

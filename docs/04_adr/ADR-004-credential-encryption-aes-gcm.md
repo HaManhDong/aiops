@@ -2,7 +2,7 @@
 
 **Trạng thái**: Accepted
 **Ngày**: 2026-04-23
-**Tác giả**: Team VST AI
+**Tác giả**: Team AIOps
 
 ## Bối cảnh
 

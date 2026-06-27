@@ -511,7 +511,7 @@ async def build_incident_digest(
             lines.append(f"  ... và {len(resolved_rows)-5} incident khác")
         lines.append("")
 
-    lines += ["=" * 56, "Hệ thống VST AI — Tự động gửi, không cần phản hồi.", ""]
+    lines += ["=" * 56, "Hệ thống AIOps — Tự động gửi, không cần phản hồi.", ""]
     return subject, "\n".join(lines)
 ```
 

@@ -1,4 +1,4 @@
-# VST AI Log Intelligence Platform
+# AIOps
 ### Slide Trình Bày Kỹ Thuật
 
 ---
@@ -12,11 +12,11 @@
 | Truy vấn log | Operator phải biết ES query DSL, Kibana filter |
 | Phân tích lỗi | Phải mở nhiều tab: Grafana, Kibana, SSH |
 | Phát hiện sự cố | Hoàn toàn reactive — chờ user report |
-| Ngôn ngữ | Tất cả công cụ AIOps trên thị trường đều là tiếng Anh |
+| Ngôn ngữ | Phần lớn công cụ AIOps buộc operator dùng query language, dashboard filter, hoặc thuật ngữ kỹ thuật cứng nhắc |
 | Kiến thức cần có | Senior SRE với > 5 năm kinh nghiệm mới tra được log hiệu quả |
 
 ### Giá trị cốt lõi của Platform
-> **Cho phép đội vận hành VST hỏi bằng tiếng Việt tự nhiên — AI tự biết query ES, Prometheus, Kibana và trả lời như một Senior SRE.**
+> **Cho phép đội vận hành VST hỏi bằng ngôn ngữ tự nhiên — AI tự biết query ES, Prometheus, Kibana và trả lời như một Senior SRE.**
 
 ---
 
@@ -72,7 +72,7 @@
 ## Slide 3 — Luồng Xử Lý Request (Request Pipeline)
 
 ```
-User gõ tin nhắn tiếng Việt
+User gõ tin nhắn bằng ngôn ngữ tự nhiên
          │
          ▼
   ┌─────────────────────────────────────────────────┐
