@@ -15,12 +15,12 @@ export default function AuditLogsPage() {
     setLoading(true)
     try {
       const params = new URLSearchParams({ limit: String(pageSize), offset: String(offset) })
-      const data = await apiJson<{ items: AuditLog[]; total: number }>(`/api/v1/audit-logs?${params}`)
+      const data = await apiJson<{ items: AuditLog[]; total: number }>(`/api/v1/admin/audit-logs?${params}`)
       setItems(data.items ?? [])
       setTotal(data.total ?? 0)
     } catch (err: unknown) { toast.error(err instanceof Error ? err.message : "Lỗi") }
     finally { setLoading(false) }
-  }, [page, pageSize, offset, setTotal])
+  }, [pageSize, offset, setTotal])
 
   useEffect(() => { load() }, [load])
 

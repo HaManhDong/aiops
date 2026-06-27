@@ -95,7 +95,9 @@ export default function TopologyPage() {
       let selectedApp = appCandidates[0]
       for (const candidate of appCandidates) {
         try {
-          data = await apiJson<TopologyGraphResponse>(`/api/v1/topology/${candidate}/graph`)
+          const graph = await apiJson<TopologyGraphResponse>(`/api/v1/topology/${candidate}/graph`)
+          if (!appId && !(graph.nodes?.length || graph.edges?.length)) continue
+          data = graph
           selectedApp = candidate
           break
         } catch (err) {

@@ -32,7 +32,7 @@ export default function PredictionAlertsPage() {
       setTotal(data.total ?? 0)
     } catch (err: unknown) { toast.error(err instanceof Error ? err.message : "Lỗi") }
     finally { setLoading(false) }
-  }, [page, pageSize, offset, status, severity, setTotal])
+  }, [pageSize, offset, status, severity, setTotal])
 
   useEffect(() => { load() }, [load])
 

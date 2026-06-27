@@ -285,9 +285,12 @@ async def get_graph(
     svc = TopologyService(db)
     graph = await svc.get_graph(app_id, version_id)
     if not graph:
-        raise HTTPException(
-            status_code=404,
-            detail={"title": f"Không có topology cho app_id '{app_id}'"},
+        return GraphRead(
+            version_id="",
+            app_id=app_id,
+            version_name="Chưa có topology",
+            nodes=[],
+            edges=[],
         )
 
     return GraphRead(

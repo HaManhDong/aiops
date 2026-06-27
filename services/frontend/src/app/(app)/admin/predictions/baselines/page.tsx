@@ -1,8 +1,6 @@
 "use client"
 import { useCallback, useEffect, useState } from "react"
 import { toast } from "sonner"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { apiJson } from "@/lib/api"
 import { PaginationBar } from "@/components/admin/PaginationBar"
@@ -35,7 +33,7 @@ export default function BaselinesPage() {
       setTotal(data.total ?? 0)
     } catch (err: unknown) { toast.error(err instanceof Error ? err.message : "Lỗi") }
     finally { setLoading(false) }
-  }, [page, pageSize, offset, appId, setTotal])
+  }, [pageSize, offset, appId, setTotal])
 
   useEffect(() => { load() }, [load])
 

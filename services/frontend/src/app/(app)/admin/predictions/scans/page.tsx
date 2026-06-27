@@ -31,7 +31,7 @@ export default function ScansPage() {
       setTotal(data.total ?? 0)
     } catch (err: unknown) { toast.error(err instanceof Error ? err.message : "Lỗi") }
     finally { setLoading(false) }
-  }, [page, pageSize, offset, setTotal])
+  }, [pageSize, offset, setTotal])
 
   useEffect(() => { load() }, [load])
 
