@@ -12,7 +12,7 @@ from app.database import init_db
 from app.middleware.error_handler import add_error_handlers
 from app.middleware.logging import RequestLoggingMiddleware, setup_logging
 from app.redis_client import init_redis
-from app.routers import audit_logs, auth, config_mgmt, health, servers, users, chat, admin_llm, incidents, topology, predictions
+from app.routers import audit_logs, auth, config_mgmt, health, servers, users, chat, admin_llm, incidents, topology, predictions, notifications
 
 log = structlog.get_logger()
 
@@ -36,6 +36,14 @@ async def lifespan(app: FastAPI):
         replace_existing=True,
     )
     _scheduler.start()
+
+    # Lưu scheduler vào app.state để routers có thể reload jobs
+    app.state.scheduler = _scheduler
+
+    # Đăng ký notification jobs từ DB
+    from app.notifications.scheduler import setup_notification_scheduler
+    setup_notification_scheduler(_scheduler)
+
     log.info("prediction_scheduler_started", interval_s=settings.prediction_scan_interval_s)
     log.info("startup_complete", env=settings.app_env, log_level=settings.log_level)
     yield
@@ -79,3 +87,4 @@ app.include_router(admin_llm.router)
 app.include_router(incidents.router)
 app.include_router(topology.router)
 app.include_router(predictions.router)
+app.include_router(notifications.router)

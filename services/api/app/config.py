@@ -97,6 +97,17 @@ class Settings(BaseSettings):
     prediction_lookback_hours: int = 24
     prediction_prom_range_step: str = "5m"
 
+    # ─── Notifications — Email (SMTP) ────────────────────────────────
+    smtp_host: str = "localhost"
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = "aiops@vst.internal"
+    smtp_use_tls: bool = False
+
+    # ─── Notifications — Telegram ─────────────────────────────────────
+    telegram_bot_token: str = ""
+
     # ─── App ─────────────────────────────────────────────────────────
     app_env: str = "development"
     log_level: str = "INFO"

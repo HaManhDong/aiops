@@ -313,6 +313,37 @@ CREATE TABLE IF NOT EXISTS prediction_scans (
     INDEX idx_app_scan (app_id, scan_at)
 ) ENGINE=InnoDB;
 
+-- ─── notification_configs ────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS notification_configs (
+    id                  VARCHAR(36)  PRIMARY KEY DEFAULT (UUID()),
+    name                VARCHAR(200) NOT NULL,
+    app_id              VARCHAR(50),
+    channel             ENUM('email','telegram') NOT NULL,
+    schedule_cron       VARCHAR(50)  NOT NULL DEFAULT '0 8 * * *',
+    is_enabled          BOOLEAN      NOT NULL DEFAULT TRUE,
+    recipients          JSON         NOT NULL,
+    report_window_hours INT          NOT NULL DEFAULT 24,
+    created_by          VARCHAR(36),
+    created_at          DATETIME(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at          DATETIME(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    INDEX idx_enabled (is_enabled),
+    CONSTRAINT fk_nc_user FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+-- ─── notification_logs ───────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS notification_logs (
+    id               VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
+    config_id        VARCHAR(36) NOT NULL,
+    channel          VARCHAR(50) NOT NULL,
+    status           ENUM('sent','failed') NOT NULL,
+    recipients_count INT         NOT NULL DEFAULT 0,
+    error_message    TEXT,
+    sent_at          DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    INDEX idx_config (config_id),
+    INDEX idx_sent_at (sent_at),
+    CONSTRAINT fk_nl_config FOREIGN KEY (config_id) REFERENCES notification_configs(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
 -- ─── Seed data ───────────────────────────────────────────────────────
 -- Admin user (password: changeme123)
 INSERT IGNORE INTO users (id, username, password_hash, full_name, role, is_active) VALUES
