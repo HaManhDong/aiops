@@ -6,7 +6,36 @@ Built for Vietnamese enterprise environments where operational data must stay on
 
 ## Why This Exists
 
-Enterprise operators investigate incidents by switching between Kibana, Grafana, SSH sessions, ticket history, and team knowledge. This platform replaces that workflow with a single evidence-grounded chat interface: classify intent → query the right observability backends → stream answer → auto-draft incident if needed.
+Hệ thống production sập lúc 2 giờ sáng. On-call engineer mở Kibana, Grafana, SSH vào từng server, lục lại email cũ tìm incident tương tự — và làm việc này mỗi lần sự cố xảy ra, lặp đi lặp lại trong nhiều năm.
+
+Đây không phải vấn đề kỹ thuật. Đây là vấn đề của con người.
+
+---
+
+**Vấn đề 1 — Thời gian xử lý sự cố kéo dài.**
+MTTR (Mean Time To Resolve) của hầu hết doanh nghiệp Việt Nam dao động từ 45 phút đến vài giờ, không phải vì thiếu tool mà vì thiếu ngữ cảnh. Engineer phải tự tổng hợp dữ liệu từ 5–7 nguồn khác nhau rồi mới bắt đầu suy luận. Mỗi phút downtime là doanh thu, là uy tín, là áp lực.
+
+**Vấn đề 2 — Cảnh báo rác.**
+Hàng nghìn alert mỗi ngày — CPU spike, disk warning, connection pool — nhưng 80% là nhiễu. Đội vận hành mất khả năng phân biệt tín hiệu thật với tín hiệu giả. Alert fatigue dẫn đến bỏ qua cảnh báo, và rồi một ngày cảnh báo thật bị bỏ qua theo.
+
+**Vấn đề 3 — Log và metrics bị lãng phí.**
+Terabyte log được ghi mỗi ngày. Nhưng 99% chưa bao giờ được đọc. Elasticsearch đang lưu toàn bộ ngữ cảnh của mỗi sự cố — error pattern, HTTP trace, slow query — nhưng không ai có thời gian đào bới nó đủ sâu trong lúc hệ thống đang cháy.
+
+**Vấn đề 4 — Thiếu kho tri thức.**
+Senior engineer giải quyết được sự cố trong 10 phút vì họ đã gặp cái này 3 lần trước. Junior engineer mất 3 tiếng vì không biết điều đó. Nhưng khi senior nghỉ việc, kiến thức đó biến mất cùng họ — không được ghi lại, không được chuyển giao.
+
+**Vấn đề 5 — Áp lực nhân sự từ công việc lặp lại.**
+"Check CPU của ERP đang bao nhiêu?" — câu hỏi này được hỏi 20 lần mỗi ngày, bởi 5 người khác nhau, trả lời theo 5 cách khác nhau. Đội vận hành giỏi nhất bị mắc kẹt trong những tác vụ lặp lại thay vì tập trung vào cải thiện hệ thống.
+
+---
+
+**Giải pháp:** AIOps.
+
+Thay vì yêu cầu engineer học thêm tool, chúng tôi đặt câu hỏi ngược lại: **điều gì xảy ra nếu hệ thống tự biết phải tra cứu ở đâu, tổng hợp ngữ cảnh nào, và trả lời trực tiếp bằng tiếng Việt?**
+
+Operator gõ một câu hỏi tự nhiên. Hệ thống phân loại ý định, truy vấn ES + Prometheus + topology + lịch sử incident song song, tổng hợp câu trả lời có dẫn chứng và stream trực tiếp về — trong vài giây. Nếu phát hiện bất thường, tự động soạn thảo incident để operator xác nhận một click. Nếu là sự cố đã gặp trước đây, hiển thị giải pháp từ lần trước.
+
+Không gửi dữ liệu ra ngoài. LLM chạy local. Mọi thứ ở trong mạng nội bộ.
 
 ## Technical Highlights
 
@@ -16,6 +45,30 @@ Enterprise operators investigate incidents by switching between Kibana, Grafana,
 - **Prediction Engine** — 7 independent signal extractors on APScheduler: OLS capacity forecasting, EWMA baseline deviation, acceleration detection, novel error detection (Jaccard), behavioral drift, composite signals, recurrence matching
 - **Conversation state machine** — Redis write-through with MariaDB fallback, slash-command protocol (`/yes`, `/no`, `/add-servers`, `/skip`, `/fix-query`), multi-turn context across reconnects
 - **Full-stack implementation** — FastAPI async backend + Next.js 15 frontend with 20 app routes, React Flow topology editor, real-time chat with history restore
+- **No vector database** — Elasticsearch full-text search + Jaccard similarity replaces embedding search entirely; zero extra infrastructure, deterministic results, sub-50ms similarity lookups against incident history
+
+## Why No Vector Database
+
+Vector databases are the default answer for AI-powered search today — but for operational log systems, they introduce complexity without proportional benefit.
+
+**Log data is already structured.** Elasticsearch stores log events with `level`, `timestamp`, `host`, `service`, `message` — not unstructured prose. Querying "ERROR logs from ERP in the last 2 hours" is a structured filter + aggregation, not a semantic similarity problem. ES already excels at this.
+
+**Incident similarity doesn't need embedding models.** The `IncidentMatcher` uses Jaccard similarity on tokenized error text. For operational text — which is dominated by error codes, service names, and stack trace keywords — token overlap is a better signal than semantic distance. An incident titled "OOM killer terminated java process on erp-app-01" is correctly matched to similar past incidents by shared tokens (`OOM`, `java`, `erp-app-01`), not by learned semantic proximity.
+
+**The infrastructure cost is real.** A vector DB (Qdrant, Weaviate, Milvus) requires: an embedding model running 24/7, an embedding pipeline for every new log/incident, additional storage, and another service to operate. In an on-premise enterprise environment, each added service is a deployment, monitoring, and upgrade burden.
+
+**Comparison:**
+
+| | Vector DB approach | This system |
+|---|---|---|
+| Infrastructure | ES + embedding model + vector DB | ES only (already exists) |
+| Incident search latency | 200–500ms (embed query + ANN search) | < 50ms (Jaccard on last 50 rows) |
+| Log querying | Semantic → ES hybrid | Pure ES DSL (aggregations, filters) |
+| Determinism | Non-deterministic (model version dependent) | Deterministic (same tokens = same result) |
+| Debuggability | Black box (why did this match?) | Transparent (token intersection visible) |
+| Embedding drift | Re-index on model upgrade | N/A |
+
+The result: the knowledge base grows and becomes searchable with zero embedding infrastructure, incident similarity is explainable, and the entire system runs on the ES + MariaDB stack the enterprise already operates.
 
 ## What Is Implemented
 
