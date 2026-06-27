@@ -170,6 +170,38 @@ async def handle_normal_query(
         )
 
     # ── Step 3: Synthesize answer ────────────────────────────────────
+
+    # ROOT_CAUSE → ExpertAgent agentic loop (4-phase)
+    if intent.intent == QueryIntent.ROOT_CAUSE:
+        from app.agents.expert_agent import ExpertAgent
+        expert = ExpertAgent()
+        async for ev in expert.investigate(
+            question=message,
+            intent=intent,
+            context=context,
+            history=history,
+            session_id=session_id,
+        ):
+            yield ev
+        # ExpertAgent emits done_event; persist context then return
+        ctx.last_assistant_summary = f"[ROOT_CAUSE] {message[:100]}"
+        ctx.state = ConvState.NORMAL
+        await _conv_mgr.save(ctx)
+        try:
+            from app.models.chat_message import ChatMessage
+            db.add(ChatMessage(session_id=session_id, role="user", content=message))
+            db.add(ChatMessage(
+                session_id=session_id,
+                role="assistant",
+                content=f"[ROOT_CAUSE investigation] {message[:200]}",
+                assistant_metadata={"intent": "ROOT_CAUSE", "app_ids": intent.app_ids},
+            ))
+            await _conv_mgr.persist_to_db(ctx, db)
+            await db.commit()
+        except Exception as e:
+            log.warning("persist_expert_chat_failed", error=str(e), session_id=session_id)
+        return
+
     yield sse.step_event("Đang tổng hợp câu trả lời...")
 
     full_answer = ""

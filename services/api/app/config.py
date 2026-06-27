@@ -51,6 +51,33 @@ class Settings(BaseSettings):
     incident_window_minutes_default: int = 60
     chat_session_title_length: int = 50
 
+    # ─── Metrics thresholds (system-wide defaults) ───────────────────
+    metric_cpu_warn: float = 75.0
+    metric_cpu_crit: float = 90.0
+    metric_ram_warn: float = 80.0
+    metric_ram_crit: float = 95.0
+    metric_disk_warn: float = 80.0
+    metric_disk_crit: float = 90.0
+
+    # ─── Prometheus timeouts ──────────────────────────────────────────
+    prometheus_query_timeout: float = 5.0
+    prometheus_range_timeout: float = 15.0
+
+    # ─── ExpertAgent ──────────────────────────────────────────────────
+    expert_max_iterations: int = 4
+    expert_evidence_min_confidence: float = 0.6
+
+    # ─── Kibana ───────────────────────────────────────────────────────
+    kibana_timeout: float = 10.0
+    kibana_alert_cache_ttl: int = 60
+
+    # ─── Service probe ────────────────────────────────────────────────
+    service_probe_timeout: float = 5.0
+
+    # ─── Worker ───────────────────────────────────────────────────────
+    worker_batch_size: int = 100
+    worker_es_index_prefix: str = "vst-txt-logs"
+
     # ─── App ─────────────────────────────────────────────────────────
     app_env: str = "development"
     log_level: str = "INFO"

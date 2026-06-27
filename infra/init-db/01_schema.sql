@@ -133,6 +133,30 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     CONSTRAINT fk_cm_session FOREIGN KEY (session_id) REFERENCES chat_sessions(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
+-- ─── worker_configs ──────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS worker_configs (
+    id             VARCHAR(36)  PRIMARY KEY DEFAULT (UUID()),
+    app_id         VARCHAR(50)  NOT NULL UNIQUE,
+    is_enabled     TINYINT(1)   NOT NULL DEFAULT 1,
+    file_patterns  JSON         NOT NULL DEFAULT ('["*.txt","*.log"]'),
+    schedule_cron  VARCHAR(50)  NOT NULL DEFAULT '*/5 * * * *',
+    batch_size     INT          NOT NULL DEFAULT 100,
+    created_at     DATETIME(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at     DATETIME(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6)
+) ENGINE=InnoDB;
+
+-- ─── collector_state ────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS collector_state (
+    id              VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
+    app_id          VARCHAR(50) NOT NULL,
+    file_path       TEXT        NOT NULL,
+    last_byte       BIGINT      NOT NULL DEFAULT 0,
+    file_size       BIGINT      NOT NULL DEFAULT 0,
+    records_indexed INT         NOT NULL DEFAULT 0,
+    last_run_at     DATETIME(6),
+    INDEX idx_app_file (app_id, file_path(255))
+) ENGINE=InnoDB;
+
 -- ─── Seed data ───────────────────────────────────────────────────────
 -- Admin user (password: changeme123)
 INSERT IGNORE INTO users (id, username, password_hash, full_name, role, is_active) VALUES

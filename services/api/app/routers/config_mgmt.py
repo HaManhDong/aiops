@@ -14,7 +14,7 @@ from app.database import get_db
 from app.middleware.auth import CurrentUser, require_admin
 from app.models.config import DatasourceConfig
 from app.services.audit import audit_log
-from app.services.config_service import ConfigService
+from app.services.config_service import ConfigService, get_config_service
 
 log = structlog.get_logger()
 router = APIRouter(prefix="/api/v1/admin", tags=["admin-config"])
@@ -299,3 +299,75 @@ async def test_datasource_connection(
 
     all_ok = all(v.get("status") == "ok" for v in results.values())
     return {"app_id": app_id, "overall": "ok" if all_ok else "partial", "checks": results}
+
+
+@router.get("/services/{app_id}/log-fields/detect")
+async def detect_log_fields(
+    app_id: str,
+    db: AsyncSession = Depends(get_db),
+    config_svc: ConfigService = Depends(get_config_service),
+    _: CurrentUser = Depends(require_admin),
+):
+    """
+    Auto-detect ES log field mapping:
+    1. Fetch sample 3 log documents from ES
+    2. Send sample to LLM to detect field mapping
+    3. Return recommended field mapping
+    """
+    import json as _json
+    from app.providers.log_storage.elasticsearch import ElasticsearchProvider
+    from app.providers import get_llm_provider
+
+    try:
+        cfg = await config_svc.get_datasource(app_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail={"title": f"Datasource '{app_id}' không tồn tại"})
+
+    # Get sample documents
+    try:
+        es_provider = ElasticsearchProvider(
+            url=cfg.elasticsearch_url,
+            api_key=cfg.elasticsearch_api_key,
+        )
+        sample = await es_provider.search(
+            cfg.app_log_index,
+            body={"query": {"match_all": {}}, "sort": [{"@timestamp": {"order": "desc"}}], "size": 3},
+            size=3,
+        )
+        hits = sample.get("hits", [])
+    except Exception as e:
+        raise HTTPException(status_code=502, detail={"title": f"Không thể lấy sample từ ES: {str(e)}"})
+
+    if not hits:
+        return {"message": "Không có document trong index", "mapping": {}}
+
+    # Ask LLM to detect field mapping
+    sample_text = _json.dumps(hits[:3], ensure_ascii=False, indent=2)[:3000]
+    prompt = f"""Phân tích các log document sau và xác định field mapping:
+{sample_text}
+
+Trả về JSON với các field names thực tế:
+{{
+  "timestamp_field": "tên field timestamp",
+  "message_field": "tên field message chính",
+  "level_field": "tên field log level",
+  "app_id_field": "tên field app_id nếu có",
+  "ip_field": "tên field IP nếu có"
+}}
+Chỉ trả về JSON."""
+
+    mapping: dict = {}
+    try:
+        llm = await get_llm_provider()
+        raw = await llm.generate_json(prompt, temperature=0.0)
+        mapping = _json.loads(raw)
+    except Exception as e:
+        log.warning("field_detect_llm_failed", app_id=app_id, error=str(e))
+
+    return {
+        "app_id": app_id,
+        "index": cfg.app_log_index,
+        "sample_count": len(hits),
+        "mapping": mapping,
+        "sample": hits[0] if hits else None,
+    }
