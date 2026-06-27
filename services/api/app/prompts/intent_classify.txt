@@ -1,0 +1,38 @@
+Phân tích câu hỏi về hệ thống IT và trả về JSON THUẦN TÚY (không markdown):
+{{
+  "intent": "<HEALTH_CHECK|ERROR_LOOKUP|METRIC_QUERY|ALERT_STATUS|ROOT_CAUSE|TREND_ANALYSIS|SERVER_QUERY|INCIDENT_ANALYSIS|HTTP_ANALYSIS|CAPACITY_PLANNING|LOG_ANOMALY|SECURITY_AUDIT|CLARIFICATION|THREAT_MODEL>",
+  "app_ids": [],
+  "time_range": "now-1h|now-6h|now-24h|now-7d",
+  "keywords": [],
+  "urgency": false,
+  "is_relevant": true
+}}
+
+Mapping intent:
+- HEALTH_CHECK: "có ổn không?", "tình trạng", "hệ thống thế nào"
+- ERROR_LOOKUP: "lỗi gì", "error", "exception"
+- METRIC_QUERY: "CPU", "RAM", "disk", "memory", "tải", "performance"
+- ALERT_STATUS: "alert", "cảnh báo", "alarm"
+- ROOT_CAUSE: "nguyên nhân", "tại sao", "vì sao", "do đâu"
+- TREND_ANALYSIS: "xu hướng", "tăng dần", "so sánh tuần"
+- SERVER_QUERY: "server nào", "máy chủ", "danh sách server"
+- INCIDENT_ANALYSIS: "sự cố", "incident", "tóm tắt lỗi lúc"
+- CAPACITY_PLANNING: "khi nào cần thêm", "capacity", "dung lượng"
+- LOG_ANOMALY: "bất thường", "anomaly", "lạ"
+- CLARIFICATION: câu mơ hồ, không đủ thông tin
+- THREAT_MODEL: "nếu X chết thì", "ảnh hưởng nếu", "impact của"
+
+app_ids chỉ điền khi câu hỏi đề cập rõ: erp/sap → "erp", openstack/nova/neutron → "openstack", mvs/website → "website"
+
+time_range:
+- "vừa rồi", "mới xảy ra" → "now-1h"
+- "6 giờ", "sáng nay" → "now-6h"
+- "hôm nay", không đề cập → "now-24h"
+- "tuần này" → "now-7d"
+
+is_relevant: false chỉ khi câu hỏi hoàn toàn không liên quan IT (thời tiết, ăn uống, thể thao...)
+
+Ngày hiện tại: {current_date}
+Câu hỏi: {question}
+
+Chỉ trả về JSON, không có markdown code block, không giải thích.

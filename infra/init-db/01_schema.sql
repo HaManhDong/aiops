@@ -100,6 +100,39 @@ CREATE TABLE IF NOT EXISTS error_classifier_patterns (
     created_at  DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)
 ) ENGINE=InnoDB;
 
+-- ─── chat_sessions ──────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS chat_sessions (
+    id           VARCHAR(36)  PRIMARY KEY DEFAULT (UUID()),
+    user_id      VARCHAR(36)  NOT NULL,
+    app_id       VARCHAR(50),
+    title        VARCHAR(100),
+    label        VARCHAR(50),
+    state        ENUM('NORMAL','WAITING_SERVER_INPUT','CONFIRMING_SERVER') NOT NULL DEFAULT 'NORMAL',
+    pending_intent  JSON,
+    pending_servers JSON,
+    last_question   TEXT,
+    last_es_queries JSON,
+    last_error_messages JSON,
+    last_assistant_summary TEXT,
+    created_at   DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at   DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    INDEX idx_user (user_id),
+    CONSTRAINT fk_cs_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- ─── chat_messages ──────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS chat_messages (
+    id                 VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
+    session_id         VARCHAR(36) NOT NULL,
+    role               ENUM('user','assistant') NOT NULL,
+    content            LONGTEXT    NOT NULL,
+    assistant_metadata JSON,
+    trace_id           VARCHAR(50),
+    created_at         DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    INDEX idx_session (session_id),
+    CONSTRAINT fk_cm_session FOREIGN KEY (session_id) REFERENCES chat_sessions(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
 -- ─── Seed data ───────────────────────────────────────────────────────
 -- Admin user (password: changeme123)
 INSERT IGNORE INTO users (id, username, password_hash, full_name, role, is_active) VALUES

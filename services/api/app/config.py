@@ -37,6 +37,20 @@ class Settings(BaseSettings):
     llm_json_timeout: float = 90.0
     llm_stream_timeout: float = 120.0
 
+    # ─── ES query ────────────────────────────────────────────────────
+    es_logs_size_normal: int = 10
+    es_agg_topk: int = 10
+    es_result_cache_ttl: int = 60       # Redis TTL cho ES query cache (seconds)
+
+    # ─── Chat pipeline ───────────────────────────────────────────────
+    dedup_jaccard_threshold: float = 0.72
+    llm_max_context_chars: int = 12000
+    llm_max_history_turns: int = 5
+    llm_max_history_content_chars: int = 400
+    conv_state_cache_ttl: int = 1800    # 30 phút
+    incident_window_minutes_default: int = 60
+    chat_session_title_length: int = 50
+
     # ─── App ─────────────────────────────────────────────────────────
     app_env: str = "development"
     log_level: str = "INFO"
